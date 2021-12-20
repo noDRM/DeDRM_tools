@@ -254,7 +254,8 @@ def returnUserInfoStringForLicense(license, user_pass = None):
                 user_email_temp = dataDecryptLCP(user_email, user_pass)
                 user_email = str(user_email_temp.decode("utf-8"))
             except:
-                pass
+                # Decryption failed for whatever reason
+                user_email = None
             
     
     if "encrypted" in license["user"] and "name" in license["user"]["encrypted"]:
@@ -266,7 +267,8 @@ def returnUserInfoStringForLicense(license, user_pass = None):
                 user_name_temp = dataDecryptLCP(user_name, user_pass)
                 user_name = str(user_name_temp.decode("utf-8"))
             except:
-                pass
+                # Decryption failed for whatever reason
+                user_name = None
 
     if (user_name is None and user_email is None):
         return None
@@ -367,17 +369,18 @@ def decryptLCPbook(inpath, passphrases, parent_object):
 
     # Print an error message if none of the passwords worked
     if (correct_password_hash is None):
-        print("LCP: None of the passphrases could decrypt the book ...")
-        print("LCP: Enter the correct passphrase in the DeDRM plugin settings, then try again.")
+        print("LCP: Tried {0} passphrases, but none of them could decrypt the book ...".format(len(password_hashes)))
         
         # Print password hint, if available
         if ("text_hint" in license["encryption"]["user_key"] and license["encryption"]["user_key"]["text_hint"] != ""):
             print("LCP: The book distributor has given you the following passphrase hint: \"{0}\"".format(license["encryption"]["user_key"]["text_hint"]))
+
+        print("LCP: Enter the correct passphrase in the DeDRM plugin settings, then try again.")
         
         # Print password reset instructions, if available
         for link in license["links"]:
             if ("rel" in link and link["rel"] == "hint"):
-                print("LCP: You can visit the following webpage to reset your LCP passphrase: {0}".format(link["href"]))
+                print("LCP: You may be able to find or reset your LCP passphrase on the following webpage: {0}".format(link["href"]))
                 break
 
         
