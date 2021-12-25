@@ -170,7 +170,7 @@ class LCPTransform:
         for byte in masterkey:
             current_hash.append(byte)
             current_hash = bytearray(hashlib.sha256(current_hash).digest())
-        return binascii.hexlify(current_hash)
+        return binascii.hexlify(current_hash).decode("latin-1")
 
     @staticmethod
     def userpass_to_hash(passphrase, algorithm):
