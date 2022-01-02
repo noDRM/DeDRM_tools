@@ -124,17 +124,28 @@ if iswindows:
     except ImportError:
         import _winreg as winreg
 
+    def _licrypto_dll_path():
+        import sys
+        for p in sys.path:
+            if p.endswith("DLLs"):
+                return os.path.join(p, "libcrypto-1_1.dll")
+
+        return
+
     def _load_crypto_libcrypto():
         from ctypes.util import find_library
         libcrypto = find_library('libcrypto-1_1')
         if libcrypto is None:
             libcrypto = find_library('libeay32')
         if libcrypto is None:
+            libcrypto = _licrypto_dll_path()
+        if libcrypto is None:
             raise ADEPTError('libcrypto not found')
         libcrypto = CDLL(libcrypto)
         AES_MAXNR = 14
         c_char_pp = POINTER(c_char_p)
         c_int_p = POINTER(c_int)
+
         class AES_KEY(Structure):
             _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
                         ('rounds', c_int)]
