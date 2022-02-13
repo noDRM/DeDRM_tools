@@ -427,7 +427,7 @@ def _load_crypto_pycrypto():
             return total
 
         def decrypt(self, data):
-            return _PKCS1_v1_5.new(self._rsa).decrypt(data, 172)
+            return _PKCS1_v1_5.new(self._rsa).decrypt(data, b'')
 
     return (ARC4, RSA, AES)
 
@@ -1901,14 +1901,20 @@ class PDFDocument(object):
         return
 
     def verify_book_key(self, bookkey):
-        if bookkey[-17] != '\x00' and bookkey[-17] != 0:
-            # Byte not null, invalid result
+        if len(bookkey) < 16:
             return False
 
         if ((bookkey[0] != '\x02' and bookkey[0] != 2) and
             ((bookkey[0] != '\x00' and bookkey[0] != 0) or 
             (bookkey[1] != '\x02' and bookkey[1] != 2))):
             # Key not starting with "00 02" or "02" -> error
+            return False
+
+        if len(bookkey) == 16:
+            return True
+
+        if bookkey[-17] != '\x00' and bookkey[-17] != 0:
+            # Byte not null, invalid result
             return False
 
         keylen = len(bookkey) - 17
@@ -1985,12 +1991,12 @@ class PDFDocument(object):
         bookkey = codecs.decode(bookkey.encode('utf-8'),'base64')
         bookkey = rsa.decrypt(bookkey)
 
+        if not self.verify_book_key(bookkey):
+            raise ADEPTError('error decrypting book session key')
+
         if len(bookkey) > 16:
-            if (self.verify_book_key(bookkey)):
-                bookkey = bookkey[-16:]
-                length = 16
-            else:
-                raise ADEPTError('error decrypting book session key')
+            bookkey = bookkey[-16:]
+            length = 16
 
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
