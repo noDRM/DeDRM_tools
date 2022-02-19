@@ -376,36 +376,50 @@ class KoboLibrary(object):
                 elif sys.platform.startswith('darwin'):
                     self.kobodir = os.path.join(os.environ['HOME'], "Library", "Application Support", "Kobo", "Kobo Desktop Edition")
                 elif sys.platform.startswith('linux'):
+                    # Since on Linux, you have to run Kobo Desktop within Wine,
+                    # there is no guarantee where Kobo.sqlite (and the rest of
+                    # the kobo directory) might be.
+                    #
+                    # It should also be noted that Kobo Desktop will store all
+                    # of it files in the current directory where you run it,
+                    # meaning that a user might accidentally create several
+                    # Kobo.sqlite files which are all separate and then be
+                    # confused why Obok can't find any of the new books. Sadly
+                    # there isn't a trivial way to deal with this.
 
-                    #sets ~/.config/calibre as the location to store the kobodir location info file and creates this directory if necessary
-                    kobodir_cache_dir = os.path.join(os.environ['HOME'], ".config", "calibre")
+                    # We cache the kobodir we find in ~/.config/calibre.
+                    kobodir_cache_dir = os.path.join(os.environ['HOME'], ".config", "calibre", "plugins", "obok")
                     if not os.path.isdir(kobodir_cache_dir):
                         os.mkdir(kobodir_cache_dir)
-                    
-                    #appends the name of the file we're storing the kobodir location info to the above path
-                    kobodir_cache_file = str(kobodir_cache_dir) + "/" + "kobo location"
-                    
-                    """if the above file does not exist, recursively searches from the root
-                    of the filesystem until kobodir is found and stores the location of kobodir
-                    in that file so this loop can be skipped in the future"""
-                    original_stdout = sys.stdout
-                    if not os.path.isfile(kobodir_cache_file):
-                        for root, dirs, files in os.walk('/'):
-                            for file in files:
-                                if file == 'Kobo.sqlite':
-                                    kobo_linux_path = str(root)
-                                    with open(kobodir_cache_file, 'w') as f:
-                                        sys.stdout = f
-                                        print(kobo_linux_path, end='')
-                                        sys.stdout = original_stdout
+                    kobodir_cache_file = os.path.join(kobodir_cache_dir, "kobo-location")
 
-                    f = open(kobodir_cache_file, 'r' )
-                    self.kobodir = f.read()
+                    try:
+                        # If the cached version exists and the path does really
+                        # contain Kobo.sqlite, use that.
+                        with open(kobodir_cache_file, "r") as f:
+                            cached_kobodir = f.read().strip()
+                            assert os.path.isfile(os.path.join(cached_kobodir, "Kobo.sqlite"))
+                            self.kobodir = cached_kobodir
+                    except (AssertionError, FileNotFoundError):
+                        # If there was no cached version, search the entire
+                        # filesystem tree for a directory containing
+                        # "Kobo.sqlite".
+                        #
+                        # We first search $HOME to avoid picking another user's
+                        # Kobo.sqlite file, but then fallback to / if there was
+                        # nothing in $HOME.
+                        for candidate_root in (os.environ["HOME"], "/"):
+                            for root, _, files in os.walk(candidate_root):
+                                if "Kobo.sqlite" in files:
+                                    with open(kobodir_cache_file, "w") as f:
+                                        f.write("%s/\n" % (root,))
+                                    self.kobodir = root
+                                    break
 
-            # desktop versions use Kobo.sqlite
+            # Desktop versions use Kobo.sqlite.
             kobodb = os.path.join(self.kobodir, "Kobo.sqlite")
             # check for existence of file
-            if (not(os.path.isfile(kobodb))):
+            if not os.path.isfile(kobodb):
                 # give up here, we haven't found anything useful
                 self.kobodir = u""
                 kobodb  = u""
@@ -478,7 +492,7 @@ class KoboLibrary(object):
         macaddrs = []
         if sys.platform.startswith('win'):
             c = re.compile('\s?(' + '[0-9a-f]{2}[:\-]' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
-            try: 
+            try:
                 output = subprocess.Popen('ipconfig /all', shell=True, stdout=subprocess.PIPE, text=True).stdout
                 for line in output:
                     m = c.search(line)
