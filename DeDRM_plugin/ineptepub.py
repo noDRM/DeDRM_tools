@@ -329,7 +329,7 @@ def _load_crypto_pycrypto():
             return total
 
         def decrypt(self, data):
-            return _PKCS1_v1_5.new(self._rsa).decrypt(data, 172)
+            return _PKCS1_v1_5.new(self._rsa).decrypt(data, b'')
 
     return (AES, RSA)
 
@@ -466,6 +466,12 @@ def adeptGetUserUUID(inpath):
             return None
 
 def verify_book_key(bookkey):
+    if len(bookkey) < 16:
+        return False
+
+    if len(bookkey) == 16:
+        return True
+
     if bookkey[-17] != '\x00' and bookkey[-17] != 0:
         # Byte not null, invalid result
         return False
@@ -523,13 +529,13 @@ def decryptBook(userkey, inpath, outpath):
                 bookkey = rsa.decrypt(base64.b64decode(bookkey.encode('ascii')))
 
                 # Verify key:
-                if len(bookkey) > 16:
-                    # Padded as per RSAES-PKCS1-v1_5
-                    if verify_book_key(bookkey):
+                if verify_book_key(bookkey):
+                    if len(bookkey) > 16:
+                        # Padded as per RSAES-PKCS1-v1_5
                         bookkey = bookkey[-16:]
-                    else:
-                        print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
-                        return 2
+                else:
+                    print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
+                    return 2
             else: 
                 # Adobe PassHash / B&N
                 key = base64.b64decode(userkey)[:16]
