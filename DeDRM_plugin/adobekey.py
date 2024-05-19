@@ -379,40 +379,46 @@ elif isosx:
         return None
 
     def adeptkeys():
-        # TODO: All the code to support extracting multiple activation keys
-        # TODO: seems to be Windows-only currently, still needs to be added for Mac.
         actpath = findActivationDat()
         if actpath is None:
             raise ADEPTError("Could not find ADE activation.dat file.")
         tree = etree.parse(actpath)
         adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
         expr = '//%s/%s' % (adept('credentials'), adept('privateLicenseKey'))
-        userkey = tree.findtext(expr)
+        userkeyelems = tree.findall(expr)
 
-        exprUUID = '//%s/%s' % (adept('credentials'), adept('user'))
-        keyName = ""
-        try: 
-            keyName = tree.findtext(exprUUID)[9:] + "_"
-        except: 
-            pass
+        userkeys = []
+        keynames = []
+        for userkeyelem in userkeyelems:
+            userkey = userkeyelem.text
 
-        try: 
-            exprMail = '//%s/%s' % (adept('credentials'), adept('username'))
-            keyName = keyName + tree.find(exprMail).attrib["method"] + "_"
-            keyName = keyName + tree.findtext(exprMail) + "_"
-        except:
-            pass
+            exprUUID = '//%s/%s' % (adept('credentials'), adept('user'))
+            keyName = ""
+            try: 
+                keyName = tree.findtext(exprUUID)[9:] + "_"
+            except: 
+                pass
 
-        if keyName == "":
-            keyName = "Unknown"
-        else:
-            keyName = keyName[:-1]
+            try: 
+                exprMail = '//%s/%s' % (adept('credentials'), adept('username'))
+                keyName = keyName + tree.find(exprMail).attrib["method"] + "_"
+                keyName = keyName + tree.findtext(exprMail) + "_"
+            except:
+                pass
 
+            if keyName == "":
+                keyName = "Unknown"
+            else:
+                keyName = keyName[:-1]
 
+            userkey = b64decode(userkey)
+            userkey = userkey[26:]
 
-        userkey = b64decode(userkey)
-        userkey = userkey[26:]
-        return [userkey], [keyName]
+            userkeys.append(userkey)
+            keynames.append(keyName)
+
+        print("Found {0:d} keys".format(len(userkeys)))
+        return userkeys, keynames
 
 else:
     def adeptkeys():
