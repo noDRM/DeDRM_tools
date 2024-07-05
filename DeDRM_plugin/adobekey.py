@@ -417,7 +417,6 @@ elif isosx:
             userkeys.append(userkey)
             keynames.append(keyName)
 
-        print("Found {0:d} keys".format(len(userkeys)))
         return userkeys, keynames
 
 else:
