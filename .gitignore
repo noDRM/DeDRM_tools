@@ -7,6 +7,3 @@
 # Cache
 /DeDRM_plugin/__pycache__
 /DeDRM_plugin/standalone/__pycache__
-
-# zip from make_release.py
-/DeDRM_tools.zip
