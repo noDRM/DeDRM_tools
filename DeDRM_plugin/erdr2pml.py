@@ -255,7 +255,7 @@ class EreaderProcessor(object):
             encrypted_key = r[172:172+8]
             encrypted_key_sha = r[56:56+20]
         self.content_key = des.decrypt(encrypted_key)
-        if sha1(self.content_key).digest() != encrypted_key_sha:
+        if hashlib.sha1(self.content_key).digest() != encrypted_key_sha:
             raise ValueError('Incorrect Name and/or Credit Card')
 
     def getNumImages(self):
