@@ -13,6 +13,7 @@ Revision history:
 
 Copyright © 2013-2020 Apprentice Harper et al.
 """
+from __future__ import annotations
 
 import collections
 import hashlib
@@ -1345,7 +1346,7 @@ class DrmIonVoucher(object):
                          process_V4648(shared), process_V5683(shared)]
 
         decrypted=False
-        ex=None
+        lastexception: Exception | None = None
         for sharedsecret in sharedsecrets:
             key = hmac.new(sharedsecret, b"PIDv3", digestmod=hashlib.sha256).digest()
             aes = AES.new(key[:32], AES.MODE_CBC, self.cipheriv[:16])
@@ -1362,9 +1363,10 @@ class DrmIonVoucher(object):
                 print("Decryption succeeded")
                 break
             except Exception as ex:
+                lastexception = ex
                 print("Decryption failed, trying next fallback ")
         if not decrypted:
-            raise ex
+            raise lastexception
 
         self.drmkey.stepin()
         while self.drmkey.hasnext():
