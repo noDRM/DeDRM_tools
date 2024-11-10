@@ -34,7 +34,7 @@ For using the tools on CLI, see the [Calibre CLI README](CALIBRE_CLI_INSTRUCTION
 
 ### DeDRM
 
-The DeDRM plugin handles books that use Amazon DRM, Adobe Digital Editions DRM, Barnes & Noble DRM, and some historical formats, see its [README](DeDRM_plugin_ReadMe.txt).
+The DeDRM plugin handles books that use Amazon DRM, Adobe Digital Editions DRM, Barnes & Noble DRM, and some historical formats, see the [DeDRM README](DeDRM_plugin_ReadMe.txt).
 
 For the latest Amazon KFX format, users of the Calibre plugin should also install the KFX Input plugin from the standard Calibre plugin menu, or manually from [the MobileRead thread](https://www.mobileread.com/forums/showthread.php?t=291290).
 
