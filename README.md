@@ -10,7 +10,7 @@ The original repository of Apprentice Harper [is no longer maintained](https://g
 
 You are urged to read the [FAQ](https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md). 
 
-The most common issue however - You can't load the nested archive with all the tools into Calibre.
+The most common issue however - You can't load the nested archive with all the tools into Calibre.<br>
 You need to unarchive the downloaded tools archive, to get just the archive with the standalone plugin.<br>
 Beta versions may be just the plugin, don't unarchive that.<br>
 
