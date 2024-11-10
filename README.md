@@ -30,25 +30,22 @@ If you want the most up-to-date code to test things and you are okay with the pl
 
 The individual scripts are released as two plugins for Calibre: DeDRM and Obok.
 
-See the plugin [README](DeDRM_plugin_ReadMe.txt) overview.
-
+See the plugin [README](DeDRM_plugin_ReadMe.txt) overview.<br>
 For using the tools with Calibre from the CLI, see that [README](CALIBRE_CLI_INSTRUCTIONS.md).
 
 ### DeDRM
 
-The DeDRM plugin handles books that use Amazon DRM, Adobe Digital Editions DRM, Barnes & Noble DRM, and some historical formats.<br>
+The DeDRM plugin handles books that use Amazon DRM, Adobe Digital Editions DRM, Barnes & Noble DRM, and some historical formats, see its [README](DeDRM_plugin_ReadMe.txt).
+.<br>
 For the latest Amazon KFX format, users of the Calibre plugin should also install the KFX Input plugin from the standard Calibre plugin menu.<br>
 It is also available from [the MobileRead thread](https://www.mobileread.com/forums/showthread.php?t=291290).
 
 Note that Amazon changes the DRM for KFX files frequently. What works for KFX today might not work tomorrow.
 
-See its [README](DeDRM_plugin_ReadMe.txt).
 
 ### Obok
 
-The Obok plugin handles Kobo DRM.
-
-See its [README](obok_plugin_ReadMe.txt).
+The Obok plugin handles Kobo DRM, see its [README](obok_plugin_ReadMe.txt).
 
 ## Changelog
 Take a look at [the CHANGELOG](CHANGELOG.md) to see a list of changes since the last version by Apprentice Harper (v7.2.1). 
