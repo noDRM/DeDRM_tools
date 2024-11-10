@@ -8,11 +8,14 @@ The original repository of Apprentice Harper [is no longer maintained](https://g
 
 ## FAQ
 
-You are urged to read the [FAQ](https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md). 
+You are urged to read the [FAQ](FAQs.md). 
 
-The most common issue however - You can't load the nested archive with all the tools into Calibre.<br>
+The most common issue you may run into is that you cannot load the nested archive with all the tools into Calibre.<br>
 You need to unarchive the downloaded tools archive, to get just the archive with the standalone plugin.<br>
 Beta versions may be just the plugin, don't unarchive that.<br>
+
+ReadMe_Overview.txt
+
 
 ## Versions
 The latest stable (released) version is v10.0.3, [available here](https://github.com/noDRM/DeDRM_tools/releases/tag/v10.0.3).<br>
@@ -27,6 +30,10 @@ If you want the most up-to-date code to test things and you are okay with the pl
 
 The individual scripts are released as two plugins for Calibre: DeDRM and Obok.
 
+See the plugin [README](DeDRM_plugin_ReadMe.txt) overview.
+
+For using the tools with Calibre from the CLI, see that [README](CALIBRE_CLI_INSTRUCTIONS.md).
+
 ### DeDRM
 
 The DeDRM plugin handles books that use Amazon DRM, Adobe Digital Editions DRM, Barnes & Noble DRM, and some historical formats.<br>
@@ -35,12 +42,16 @@ It is also available from [the MobileRead thread](https://www.mobileread.com/for
 
 Note that Amazon changes the DRM for KFX files frequently. What works for KFX today might not work tomorrow.
 
+See its [README](DeDRM_plugin_ReadMe.txt).
+
 ### Obok
 
 The Obok plugin handles Kobo DRM.
 
+See its [README](obok_plugin_ReadMe.txt).
+
 ## Changelog
-Take a look at [the CHANGELOG](https://github.com/noDRM/DeDRM_tools/blob/master/CHANGELOG.md) to see a list of changes since the last version by Apprentice Harper (v7.2.1). 
+Take a look at [the CHANGELOG](CHANGELOG.md) to see a list of changes since the last version by Apprentice Harper (v7.2.1). 
 
 ## Contributions
 
