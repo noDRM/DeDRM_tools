@@ -4,6 +4,8 @@ This is a repository that tracks all the scripts and other tools for removing DR
 The provided plugins should work with both Calibre 5.x/6.x (Python 3), as well as Calibre 4.x and lower (Python 2).<br>
 If you encounter issues with the plugins in Calibre 4.x or lower, please open a bug report. 
 
+The original repository of Apprentice Harper [is no longer maintained](https://github.com/apprenticeharper/DeDRM_tools#no-longer-maintained), so I've taken over, merged a bunch of open PRs, and added a ton more features and bugfixes. 
+
 ## FAQ
 
 You are urged to read the [FAQ](https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md). 
@@ -36,12 +38,6 @@ Note that Amazon changes the DRM for KFX files frequently. What works for KFX to
 ### Obok
 
 The Obok plugin handles Kobo DRM.
-
-## Forked from Apprentice Harper
-
-Original repository of Apprentice Harper [is no longer maintained](https://github.com/apprenticeharper/DeDRM_tools#no-longer-maintained), so I've taken over, merged a bunch of open PRs, and added a ton more features and bugfixes. 
-
-Original README.MD can be found [there](https://github.com/apprenticeharper/DeDRM_tools?tab=readme-ov-file#dedrm_tools).
 
 ## Changelog
 Take a look at [the CHANGELOG](https://github.com/noDRM/DeDRM_tools/blob/master/CHANGELOG.md) to see a list of changes since the last version by Apprentice Harper (v7.2.1). 
