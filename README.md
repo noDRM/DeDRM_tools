@@ -1,5 +1,5 @@
 # DeDRM_tools
-This is a repository that tracks all the scripts and other tools for removing DRM from eBooks.
+This is a repository that tracks all the scripts and tools for removing DRM from eBooks.
 
 The provided plugins should work with both Calibre 5.x/6.x (Python 3), as well as Calibre 4.x and lower (Python 2).<br>
 If you encounter issues with the plugins in Calibre 4.x or lower, please open a bug report. 
