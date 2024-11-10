@@ -18,7 +18,7 @@ ReadMe_Overview.txt
 
 
 ## Versions
-The latest stable (released) version is v10.0.3, [available here](https://github.com/noDRM/DeDRM_tools/releases/tag/v10.0.3).<br>
+The latest stable release is v10.0.3, [available here](https://github.com/noDRM/DeDRM_tools/releases/tag/v10.0.3).<br>
 
 The latest beta is v10.0.9, as a release candidate for v10.1.0, [available here](https://github.com/noDRM/DeDRM_tools/releases/tag/v10.0.9).<br>
 
