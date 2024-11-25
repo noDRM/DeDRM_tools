@@ -3,12 +3,11 @@ DeDRM_plugin.zip
 
 This plugin will remove the DRM from:
 
- - Kindle ebooks (files from Kindle for Mac/PC and eInk Kindles).
- - Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
- - Adobe Digital Editions PDFs
+- Kindle ebooks (files from Kindle for Mac/PC and eInk Kindles).
+- Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
+- Adobe Digital Editions PDFs
 
-For limitations and work-arounds, see the FAQ at https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md (or the FAQ in Apprentice Harper's original repository at https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md)
-
+For limitations and work-arounds, see the [FAQ](https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md) (or the FAQ in [Apprentice Harper's original repository](https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md))
 
 Installation
 ------------
@@ -26,11 +25,11 @@ Troubleshooting
 ---------------
 If you find that the DeDRM plugin is not working for you (imported ebooks still have DRM - that is, they won't convert or open in the calibre ebook viewer), you should make a log of the import process by deleting the DRMed ebook from calibre and then adding the ebook to calibre when it's running in debug mode. This will generate a lot of helpful debugging info that can be copied into any online help requests. Here's how to do it:
 
- - Remove the DRMed book from calibre.
- - Click the Preferences drop-down menu and choose 'Restart in debug mode'.
- - Once calibre has re-started, import the problem ebook.
- - Now close calibre.
+- Remove the DRMed book from calibre.
+- Click the Preferences drop-down menu and choose 'Restart in debug mode'.
+- Once calibre has re-started, import the problem ebook.
+- Now close calibre.
 
-A log will appear that you can copy and paste into a GitHub issue report at https://github.com/noDRM/DeDRM_tools/issues. Please also include information about the eBook file.
+A log will appear that you can copy and paste into a [GitHub issue report](https://github.com/noDRM/DeDRM_tools/issues). Please also include information about the eBook file.
 
-If you're using Apprentice Harper's original version, you can also comment at Apprentice Alf's blog, http://apprenticealf.wordpress.com/ or open an issue at Apprentice Harper's repository, https://github.com/apprenticeharper/DeDRM_tools/issues.
+If you're using Apprentice Harper's original version, you can also comment at [Apprentice Alf's blog](http://apprenticealf.wordpress.com/), or open an issue at [Apprentice Harper's repository](https://github.com/apprenticeharper/DeDRM_tools/issues).
