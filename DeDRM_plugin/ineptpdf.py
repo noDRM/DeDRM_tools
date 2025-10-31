@@ -668,13 +668,13 @@ class PSStackParser(PSBaseParser):
         self.results.extend(objs)
         return
 
-    def start_type(self, pos, type):
+    def start_type(self, pos, type_):
         self.context.append((pos, self.curtype, self.curstack))
-        (self.curtype, self.curstack) = (type, [])
+        (self.curtype, self.curstack) = (type_, [])
         return
-    def end_type(self, type):
-        if self.curtype != type:
-            raise PSTypeError('Type mismatch: %r != %r' % (self.curtype, type))
+    def end_type(self, type_):
+        if self.curtype != type_:
+            raise PSTypeError('Type mismatch: %r != %r' % (self.curtype, type_))
         objs = [ obj for (_,obj) in self.curstack ]
         (pos, self.curtype, self.curstack) = self.context.pop()
         return (pos, objs)
@@ -1237,14 +1237,14 @@ class PDFDocument(object):
             raise PDFEncryptionError('Document is not encrypted.')
             return
         (docid, param) = self.encryption
-        type = literal_name(param['Filter'])
-        if type == 'Adobe.APS':
+        type_ = literal_name(param['Filter'])
+        if type_ == 'Adobe.APS':
             return self.initialize_adobe_ps(password, docid, param)
-        if type == 'Standard':
+        if type_ == 'Standard':
             return self.initialize_standard(password, docid, param)
-        if type == 'EBX_HANDLER' and inept is True:
+        if type_ == 'EBX_HANDLER' and inept is True:
             return self.initialize_ebx_inept(password, docid, param)
-        if type == 'EBX_HANDLER' and inept is False:
+        if type_ == 'EBX_HANDLER' and inept is False:
             return self.initialize_ebx_ignoble(password, docid, param)
 
         raise PDFEncryptionError('Unknown filter: param=%r' % param)
@@ -1256,8 +1256,8 @@ class PDFDocument(object):
             return None
 
         (docid, param) = self.encryption
-        type = literal_name(param['Filter'])
-        return type
+        type_ = literal_name(param['Filter'])
+        return type_
 
     def initialize_adobe_ps(self, password, docid, param):
         global KEYFILEPATH
@@ -2103,8 +2103,8 @@ def adeptGetUserUUID(inf):
         pars = PDFParser(doc, inf)
 
         (docid, param) = doc.encryption
-        type = literal_name(param['Filter'])
-        if type != 'EBX_HANDLER':
+        type_ = literal_name(param['Filter'])
+        if type_ != 'EBX_HANDLER':
             # No EBX_HANDLER, no idea which user key can decrypt this.
             inf.close()
             return None

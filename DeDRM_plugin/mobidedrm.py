@@ -234,23 +234,23 @@ class MobiBook:
                 nitems, = struct.unpack('>I', exth[8:12])
                 pos = 12
                 for i in range(nitems):
-                    type, size = struct.unpack('>II', exth[pos: pos + 8])
+                    type_, size = struct.unpack('>II', exth[pos: pos + 8])
                     content = exth[pos + 8: pos + size]
-                    self.meta_array[type] = content
+                    self.meta_array[type_] = content
                     # reset the text to speech flag and clipping limit, if present
-                    if type == 401 and size == 9:
+                    if type_ == 401 and size == 9:
                         # set clipping limit to 100%
                         self.patchSection(0, b'\144', 16 + self.mobi_length + pos + 8)
-                    elif type == 404 and size == 9:
+                    elif type_ == 404 and size == 9:
                         # make sure text to speech is enabled
                         self.patchSection(0, b'\0', 16 + self.mobi_length + pos + 8)
-                    elif type == 405 and size == 9:
+                    elif type_ == 405 and size == 9:
                         # remove rented book flag
                         self.patchSection(0, b'\0', 16 + self.mobi_length + pos + 8)
-                    elif type == 406 and size == 16:
+                    elif type_ == 406 and size == 16:
                         # remove rental due date
                         self.patchSection(0, b'\0'*8, 16 + self.mobi_length + pos + 8)
-                    elif type == 208:
+                    elif type_ == 208:
                         # remove watermark (atv:kin: stuff)
                         self.patchSection(0, b'\0'*(size-8), 16 + self.mobi_length + pos + 8)
                     # print type, size, content, content.encode('hex')
@@ -322,7 +322,7 @@ class MobiBook:
                 temp_key_sum = sum(temp_key) & 0xff
             found_key = None
             for i in range(count):
-                verification, size, type, cksum, cookie = struct.unpack('>LLLBxxx32s', data[i*0x30:i*0x30+0x30])
+                verification, size, type_, cksum, cookie = struct.unpack('>LLLBxxx32s', data[i*0x30:i*0x30+0x30])
                 if cksum == temp_key_sum:
                     cookie = PC1(temp_key, cookie)
                     ver,flags,finalkey,expiry,expiry2 = struct.unpack('>LL16sLL', cookie)
@@ -341,7 +341,7 @@ class MobiBook:
                 temp_key_sum = sum(temp_key) & 0xff
             
             for i in range(count):
-                verification, size, type, cksum, cookie = struct.unpack('>LLLBxxx32s', data[i*0x30:i*0x30+0x30])
+                verification, size, type_, cksum, cookie = struct.unpack('>LLLBxxx32s', data[i*0x30:i*0x30+0x30])
                 if cksum == temp_key_sum:
                     cookie = PC1(temp_key, cookie)
                     ver,flags,finalkey,expiry,expiry2 = struct.unpack('>LL16sLL', cookie)

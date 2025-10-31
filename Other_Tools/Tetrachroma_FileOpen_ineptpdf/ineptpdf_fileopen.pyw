@@ -830,13 +830,13 @@ class PSStackParser(PSBaseParser):
         self.results.extend(objs)
         return
 
-    def start_type(self, pos, type):
+    def start_type(self, pos, type_):
         self.context.append((pos, self.curtype, self.curstack))
-        (self.curtype, self.curstack) = (type, [])
+        (self.curtype, self.curstack) = (type_, [])
         return
-    def end_type(self, type):
-        if self.curtype != type:
-            raise PSTypeError('Type mismatch: %r != %r' % (self.curtype, type))
+    def end_type(self, type_):
+        if self.curtype != type_:
+            raise PSTypeError('Type mismatch: %r != %r' % (self.curtype, type_))
         objs = [ obj for (_,obj) in self.curstack ]
         (pos, self.curtype, self.curstack) = self.context.pop()
         return (pos, objs)
@@ -1404,15 +1404,15 @@ class PDFDocument(object):
             self.ready = True
             return
         (docid, param) = self.encryption
-        type = literal_name(param['Filter'])
-        if type == 'Adobe.APS' or type == "Standard" or type == "EBX_HANDLER":
+        type_ = literal_name(param['Filter'])
+        if type_ == 'Adobe.APS' or type_ == "Standard" or type_ == "EBX_HANDLER":
             print("This script is just for FOPN encryption.")
             print("For standard password PDFs or Adobe PDFs, use ineptpdy.py")
             raise PDFEncryptionError("Not a FileOpen-encrypted file")
-        if type == 'FOPN_fLock':
+        if type_ == 'FOPN_fLock':
             # remove of unnecessairy password attribute
             return self.initialize_fopn_flock(docid, param)
-        if type == 'FOPN_foweb':
+        if type_ == 'FOPN_foweb':
             # remove of unnecessairy password attribute
             return self.initialize_fopn(docid, param)
         raise PDFEncryptionError('Unknown filter: param=%r' % param)
@@ -1424,8 +1424,8 @@ class PDFDocument(object):
             return None
 
         (docid, param) = self.encryption
-        type = literal_name(param['Filter'])
-        return type
+        type_ = literal_name(param['Filter'])
+        return type_
 
 
     PASSWORD_PADDING = b'(\xbfN^Nu\x8aAd\x00NV\xff\xfa\x01\x08..' \

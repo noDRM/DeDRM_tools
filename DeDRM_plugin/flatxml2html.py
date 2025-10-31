@@ -434,7 +434,7 @@ class DocParser(object):
         return pclass, result
 
 
-    def buildParagraph(self, pclass, pdesc, type, regtype) :
+    def buildParagraph(self, pclass, pdesc, type_, regtype) :
         parares = ''
         sep =''
 
@@ -446,10 +446,10 @@ class DocParser(object):
 
         handle_links = len(self.link_id) > 0
 
-        if (type == 'full') or (type == 'begin') :
+        if (type_ == 'full') or (type_ == 'begin') :
             parares += '<p' + classres + '>'
 
-        if (type == 'end'):
+        if (type_ == 'end'):
             parares += ' '
 
         lstart = len(parares)
@@ -534,7 +534,7 @@ class DocParser(object):
                 parares += sep
 
         if len(sep) > 0 : parares = parares[0:-1]
-        if (type == 'full') or (type == 'end') :
+        if (type_ == 'full') or (type_ == 'end') :
             parares += '</p>'
         return parares
 

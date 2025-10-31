@@ -513,14 +513,14 @@ class KoboBook(object):
     title - the human-readable book title.
     filename - the complete path and filename of the book.
     type - either kepub or drm-free"""
-    def __init__ (self, volumeid, title, filename, type, cursor, author=None, series=None):
+    def __init__ (self, volumeid, title, filename, type_, cursor, author=None, series=None):
         self.volumeid = volumeid
         self.title = title
         self.author = author
         self.series = series
         self.series_index = None
         self.filename = filename
-        self.type = type
+        self.type = type_
         self.__cursor = cursor
         self._encryptedfiles = {}
 
