@@ -176,7 +176,7 @@ class EreaderProcessor(object):
         cookie_shuf, cookie_size = struct.unpack('>LL', des.decrypt(data[-8:]))
         if cookie_shuf < 3 or cookie_shuf > 0x14 or cookie_size < 0xf0 or cookie_size > 0x200:
             raise ValueError('incorrect eReader version (error 2)')
-        input = des.decrypt(data[-cookie_size:])
+        input_ = des.decrypt(data[-cookie_size:])
         def unshuff(data, shuf):
             r = [0] * len(data)
             j = 0
@@ -185,7 +185,7 @@ class EreaderProcessor(object):
                 r[j] = data[i]
             assert len(bytes(r)) == len(data)
             return bytes(r)
-        r = unshuff(input[0:-8], cookie_shuf)
+        r = unshuff(input_[0:-8], cookie_shuf)
 
         drm_sub_version = struct.unpack('>H', r[0:2])[0]
         self.num_text_pages = struct.unpack('>H', r[2:4])[0] - 1
