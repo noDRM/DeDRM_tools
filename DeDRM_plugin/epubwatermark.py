@@ -22,7 +22,7 @@ from lxml import etree
 import re
 
 # Runs a RegEx over all HTML/XHTML files to remove watermakrs.
-def removeHTMLwatermarks(object, path_to_ebook):
+def removeHTMLwatermarks(object_, path_to_ebook):
     try: 
         inf = ZipFile(open(path_to_ebook, 'rb'))
         namelist = inf.namelist()
@@ -106,7 +106,7 @@ def removeHTMLwatermarks(object, path_to_ebook):
         namelist.remove("mimetype")
 
         try: 
-            output = object.temporary_file(".epub").name
+            output = object_.temporary_file(".epub").name
             kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
             with closing(ZipFile(open(output, 'wb'), 'w', **kwds)) as outf:
                 for path in (["mimetype"] + namelist):
@@ -175,7 +175,7 @@ def removeHTMLwatermarks(object, path_to_ebook):
 
 
 # Finds the main OPF file, then uses RegEx to remove watermarks
-def removeOPFwatermarks(object, path_to_ebook):
+def removeOPFwatermarks(object_, path_to_ebook):
     contNS = lambda tag: '{%s}%s' % ('urn:oasis:names:tc:opendocument:xmlns:container', tag)
     opf_path = None
 
@@ -238,7 +238,7 @@ def removeOPFwatermarks(object, path_to_ebook):
         namelist.remove("mimetype")
 
         try: 
-            output = object.temporary_file(".epub").name
+            output = object_.temporary_file(".epub").name
             kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
             with closing(ZipFile(open(output, 'wb'), 'w', **kwds)) as outf:
                 for path in (["mimetype"] + namelist):
@@ -288,7 +288,7 @@ def removeOPFwatermarks(object, path_to_ebook):
 
 
 
-def removeCDPwatermark(object, path_to_ebook):
+def removeCDPwatermark(object_, path_to_ebook):
     # "META-INF/cdp.info" is a watermark file used by some Tolino vendors. 
     # We don't want that in our eBooks, so lets remove that file.
     try: 
@@ -300,7 +300,7 @@ def removeCDPwatermark(object, path_to_ebook):
         namelist.remove("mimetype")
         namelist.remove("META-INF/cdp.info")
 
-        output = object.temporary_file(".epub").name
+        output = object_.temporary_file(".epub").name
 
         kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
         with closing(ZipFile(open(output, 'wb'), 'w', **kwds)) as outf:
