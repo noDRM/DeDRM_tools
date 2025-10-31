@@ -44,9 +44,9 @@ def isLCPbook(inpath):
                 b"EncryptedContentKey" not in lcpbook.read("META-INF/encryption.xml")):
                 return False
 
-            license = json.loads(lcpbook.read('META-INF/license.lcpl'))
+            license_ = json.loads(lcpbook.read('META-INF/license.lcpl'))
 
-            if "id" in license and "encryption" in license and "profile" in license["encryption"]:
+            if "id" in license_ and "encryption" in license_ and "profile" in license_["encryption"]:
                 return True
 
     except: 
