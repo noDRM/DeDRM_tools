@@ -123,12 +123,12 @@ class Dictionary(object):
             self.stable.append(self.escapestr(readString(self.fo)))
         self.pos = 0
 
-    def escapestr(self, str):
-        str = str.replace('&','&amp;')
-        str = str.replace('<','&lt;')
-        str = str.replace('>','&gt;')
-        str = str.replace('=','&#61;')
-        return str
+    def escapestr(self, str_):
+        str_ = str_.replace('&', '&amp;')
+        str_ = str_.replace('<', '&lt;')
+        str_ = str_.replace('>', '&gt;')
+        str_ = str_.replace('=', '&#61;')
+        return str_
 
     def lookup(self,val):
         if ((val >= 0) and (val < self.size)) :

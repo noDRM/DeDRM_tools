@@ -94,12 +94,12 @@ class Dictionary(object):
         for i in range(self.size):
             self.stable.append(self.escapestr(readString(self.fo)))
         self.pos = 0
-    def escapestr(self, str):
-        str = str.replace(b'&',b'&amp;')
-        str = str.replace(b'<',b'&lt;')
-        str = str.replace(b'>',b'&gt;')
-        str = str.replace(b'=',b'&#61;')
-        return str
+    def escapestr(self, str_):
+        str_ = str_.replace(b'&', b'&amp;')
+        str_ = str_.replace(b'<', b'&lt;')
+        str_ = str_.replace(b'>', b'&gt;')
+        str_ = str_.replace(b'=', b'&#61;')
+        return str_
     def lookup(self,val):
         if ((val >= 0) and (val < self.size)) :
             self.pos = val
