@@ -1427,23 +1427,23 @@ class PDFDocument(object):
 
         length = int_value(param.get('Length', 40)) # Key length (bits)
         password = (password+self.PASSWORD_PADDING)[:32]
-        hash = hashlib.md5(password)
+        hash_ = hashlib.md5(password)
         if R >= 3:
             for _ in range(50):
-                hash = hashlib.md5(hash.digest()[:length//8])
-        hash = hash.digest()[:length//8]
+                hash_ = hashlib.md5(hash_.digest()[:length//8])
+        hash_ = hash_.digest()[:length//8]
 
         # "hash" is the return value of compute_O_rc4_key
 
         Odata = str_value(param.get('O'))
         # now call iterate_rc4 ...
-        x = ARC4.new(hash).decrypt(Odata) # 4
+        x = ARC4.new(hash_).decrypt(Odata) # 4
         if R >= 3:
             for i in range(1,19+1):
                 if sys.version_info[0] == 2:
-                    k = b''.join(chr(ord(c) ^ i) for c in hash )
+                    k = b''.join(chr(ord(c) ^ i) for c in hash_ )
                 else: 
-                    k = b''.join(bytes([c ^ i]) for c in hash )
+                    k = b''.join(bytes([c ^ i]) for c in hash_ )
                 x = ARC4.new(k).decrypt(x)
 
 
@@ -1476,39 +1476,39 @@ class PDFDocument(object):
 
         # Algorithm 3.2
         password = (password+self.PASSWORD_PADDING)[:32] # 1
-        hash = hashlib.md5(password) # 2
-        hash.update(O) # 3
-        hash.update(struct.pack('<l', P)) # 4
-        hash.update(docid[0]) # 5
+        hash_ = hashlib.md5(password) # 2
+        hash_.update(O) # 3
+        hash_.update(struct.pack('<l', P)) # 4
+        hash_.update(docid[0]) # 5
         # aes special handling if metadata isn't encrypted
         try:
             EncMetadata = str_value(param['EncryptMetadata'])
         except:
             EncMetadata = b'True'
         if (EncMetadata == ('False' or 'false') or V < 4) and R >= 4:
-            hash.update(codecs.decode(b'ffffffff','hex'))
+            hash_.update(codecs.decode(b'ffffffff','hex'))
 
         # Finish hash:
-        hash = hash.digest()
+        hash_ = hash_.digest()
         
         if R >= 3:
             # 8
             for _ in range(50):
-                hash = hashlib.md5(hash[:length//8]).digest()
+                hash_ = hashlib.md5(hash_[:length//8]).digest()
         if R == 2:
             # R=2 only uses first five bytes.
-            key = hash[:5]
+            key = hash_[:5]
         else:
-            key = hash[:length//8]
+            key = hash_[:length//8]
 
         if R == 2:
             # Algorithm 3.4
             u1 = ARC4.new(key).decrypt(self.PASSWORD_PADDING)
         elif R >= 3:
             # Algorithm 3.5
-            hash = hashlib.md5(self.PASSWORD_PADDING) # 2
-            hash.update(docid[0]) # 3
-            x = ARC4.new(key).decrypt(hash.digest()[:16]) # 4
+            hash_ = hashlib.md5(self.PASSWORD_PADDING) # 2
+            hash_.update(docid[0]) # 3
+            x = ARC4.new(key).decrypt(hash_.digest()[:16]) # 4
             for i in range(1,19+1):
                 if sys.version_info[0] == 2:
                     k = b''.join(chr(ord(c) ^ i) for c in key )
@@ -1753,8 +1753,8 @@ class PDFDocument(object):
         objid = struct.pack('<L', objid)[:3]
         genno = struct.pack('<L', genno)[:2]
         key = self.decrypt_key + objid + genno
-        hash = hashlib.md5(key)
-        key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
+        hash_ = hashlib.md5(key)
+        key = hash_.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
 
     def genkey_v3(self, objid, genno):
@@ -1762,8 +1762,8 @@ class PDFDocument(object):
         genno = struct.pack('<L', genno ^ 0xca96)
         key = self.decrypt_key
         key += bytes([objid[0], genno[0], objid[1], genno[1], objid[2]]) + b'sAlT'
-        hash = hashlib.md5(key)
-        key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
+        hash_ = hashlib.md5(key)
+        key = hash_.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
 
     # aes v2 and v4 algorithm
@@ -1771,8 +1771,8 @@ class PDFDocument(object):
         objid = struct.pack('<L', objid)[:3]
         genno = struct.pack('<L', genno)[:2]
         key = self.decrypt_key + objid + genno + b'sAlT'
-        hash = hashlib.md5(key)
-        key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
+        hash_ = hashlib.md5(key)
+        key = hash_.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
 
     def genkey_v5(self, objid, genno):

@@ -494,8 +494,8 @@ class KoboLibrary(object):
     def __getuserkeys (self, macaddr):
         userids = self.__getuserids()
         userkeys = []
-        for hash in KOBO_HASH_KEYS:
-            deviceid = hashlib.sha256((hash + macaddr).encode('ascii')).hexdigest()
+        for hash_ in KOBO_HASH_KEYS:
+            deviceid = hashlib.sha256((hash_ + macaddr).encode('ascii')).hexdigest()
             for userid in userids:
                 userkey = hashlib.sha256((deviceid + userid).encode('ascii')).hexdigest()
                 userkeys.append(binascii.a2b_hex(userkey[32:]))

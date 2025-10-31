@@ -102,11 +102,11 @@ def getSixBitsFromBitField(bitField,offset):
     return value
 
 # 8 bits to six bits encoding from hash to generate PID string
-def encodePID(hash):
+def encodePID(hash_):
     global charMap3
     PID = b''
     for position in range (0,8):
-        PID += bytes(bytearray([charMap3[getSixBitsFromBitField(hash,position)]]))
+        PID += bytes(bytearray([charMap3[getSixBitsFromBitField(hash_, position)]]))
         
     return PID
 

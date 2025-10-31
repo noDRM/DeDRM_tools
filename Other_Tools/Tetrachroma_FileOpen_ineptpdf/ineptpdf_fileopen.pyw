@@ -1966,8 +1966,8 @@ class PDFDocument(object):
         objid = struct.pack('<L', objid)[:3]
         genno = struct.pack('<L', genno)[:2]
         key = self.decrypt_key + objid + genno
-        hash = hashlib.md5(key)
-        key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
+        hash_ = hashlib.md5(key)
+        key = hash_.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
 
     def genkey_v3(self, objid, genno):
@@ -1975,8 +1975,8 @@ class PDFDocument(object):
         genno = struct.pack('<L', genno ^ 0xca96)
         key = self.decrypt_key
         key += bytes([objid[0], genno[0], objid[1], genno[1], objid[2]]) + b'sAlT'
-        hash = hashlib.md5(key)
-        key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
+        hash_ = hashlib.md5(key)
+        key = hash_.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
 
     # aes v2 and v4 algorithm
@@ -1984,8 +1984,8 @@ class PDFDocument(object):
         objid = struct.pack('<L', objid)[:3]
         genno = struct.pack('<L', genno)[:2]
         key = self.decrypt_key + objid + genno + b'sAlT'
-        hash = hashlib.md5(key)
-        key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
+        hash_ = hashlib.md5(key)
+        key = hash_.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
 
     def genkey_v5(self, objid, genno):
@@ -2315,13 +2315,13 @@ class PDFDocument(object):
         input1 = struct.pack('L', 0xa4da49de)
         seed   = struct.pack('B', 0x82)
         key = input1[3] + input1[2] +input1[1] +input1[0] + seed
-        hash = hashlib.md5()
-        key = hash.update(key)
+        hash_ = hashlib.md5()
+        key = hash_.update(key)
         spointer4 = struct.pack('<L', 0xec8d6c58)
         seed = struct.pack('B', 0x07)
         key = spointer4[3] + spointer4[2] + spointer4[1] + spointer4[0] + seed
-        key = hash.update(key)
-        md5 = hash.digest()
+        key = hash_.update(key)
+        md5 = hash_.digest()
         key = md5[0:10]
         return ARC4.new(key).decrypt(data)
 
