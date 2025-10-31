@@ -392,11 +392,11 @@ if iswindows:
                 """ Encrypt a block, plainTextBlock must be a array of bytes [Nb by 4] """
                 self.state = self._toBlock(plainTextBlock)
                 AddRoundKey(self, self.__expandedKey[0:self.Nb])
-                for round in range(1,self.Nr):          #for round = 1 step 1 to Nr
+                for round_ in range(1,self.Nr):          #for round = 1 step 1 to Nr
                     SubBytes(self)
                     ShiftRows(self)
                     MixColumns(self)
-                    AddRoundKey(self, self.__expandedKey[round*self.Nb:(round+1)*self.Nb])
+                    AddRoundKey(self, self.__expandedKey[round_*self.Nb:(round_+1)*self.Nb])
                 SubBytes(self)
                 ShiftRows(self)
                 AddRoundKey(self, self.__expandedKey[self.Nr*self.Nb:(self.Nr+1)*self.Nb])
@@ -407,10 +407,10 @@ if iswindows:
                 """ decrypt a block (array of bytes) """
                 self.state = self._toBlock(encryptedBlock)
                 AddRoundKey(self, self.__expandedKey[self.Nr*self.Nb:(self.Nr+1)*self.Nb])
-                for round in range(self.Nr-1,0,-1):
+                for round_ in range(self.Nr-1,0,-1):
                     InvShiftRows(self)
                     InvSubBytes(self)
-                    AddRoundKey(self, self.__expandedKey[round*self.Nb:(round+1)*self.Nb])
+                    AddRoundKey(self, self.__expandedKey[round_*self.Nb:(round_+1)*self.Nb])
                     InvMixColumns(self)
                 InvShiftRows(self)
                 InvSubBytes(self)
