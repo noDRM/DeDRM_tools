@@ -112,7 +112,7 @@ class KeyIVGen(object):
     # this only exists in openssl so we will use pure python implementation instead
     # PKCS5_PBKDF2_HMAC_SHA1 = F(c_int, 'PKCS5_PBKDF2_HMAC_SHA1',
     #                             [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
-    def pbkdf2(self, passwd, salt, iter, keylen):
+    def pbkdf2(self, passwd, salt, iter_, keylen):
 
         def xorbytes( a, b ):
             if len(a) != len(b):
@@ -141,7 +141,7 @@ class KeyIVGen(object):
         h = hmac.new( passwd, None, sha )
         T = b""
         for i in range(1, l+1):
-            T += pbkdf2_F( h, salt, iter, i )
+            T += pbkdf2_F(h, salt, iter_, i)
         return T[0: keylen]
 
 

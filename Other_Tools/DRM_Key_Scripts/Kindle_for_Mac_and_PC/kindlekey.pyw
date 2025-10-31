@@ -788,7 +788,7 @@ if iswindows:
             # this only exists in openssl so we will use pure python implementation instead
             # PKCS5_PBKDF2_HMAC_SHA1 = F(c_int, 'PKCS5_PBKDF2_HMAC_SHA1',
             #                             [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
-            def pbkdf2(self, passwd, salt, iter, keylen):
+            def pbkdf2(self, passwd, salt, iter_, keylen):
 
                 def xorbytes( a, b ):
                     if len(a) != len(b):
@@ -818,15 +818,15 @@ if iswindows:
                 h = hmac.new( passwd, None, sha )
                 T = ""
                 for i in range(1, l+1):
-                    T += pbkdf2_F( h, salt, iter, i )
+                    T += pbkdf2_F(h, salt, iter_, i)
                 return T[0: keylen]
 
     def UnprotectHeaderData(encryptedData):
         passwdData = 'header_key_data'
         salt = 'HEADER.2011'
-        iter = 0x80
+        iter_ = 0x80
         keylen = 0x100
-        key_iv = KeyIVGen().pbkdf2(passwdData, salt, iter, keylen)
+        key_iv = KeyIVGen().pbkdf2(passwdData, salt, iter_, keylen)
         key = key_iv[0:32]
         iv = key_iv[32:48]
         aes=AES_CBC()
@@ -1231,11 +1231,11 @@ elif isosx:
                     raise DrmException(u"AES decryption failed")
                 return out.raw
 
-            def keyivgen(self, passwd, salt, iter, keylen):
+            def keyivgen(self, passwd, salt, iter_, keylen):
                 saltlen = len(salt)
                 passlen = len(passwd)
                 out = create_string_buffer(keylen)
-                rv = PKCS5_PBKDF2_HMAC_SHA1(passwd, passlen, salt, saltlen, iter, keylen, out)
+                rv = PKCS5_PBKDF2_HMAC_SHA1(passwd, passlen, salt, saltlen, iter_, keylen, out)
                 return out.raw
         return LibCrypto
 
@@ -1384,10 +1384,10 @@ elif isosx:
     def UnprotectHeaderData(encryptedData):
         passwdData = 'header_key_data'
         salt = 'HEADER.2011'
-        iter = 0x80
+        iter_ = 0x80
         keylen = 0x100
         crp = LibCrypto()
-        key_iv = crp.keyivgen(passwdData, salt, iter, keylen)
+        key_iv = crp.keyivgen(passwdData, salt, iter_, keylen)
         key = key_iv[0:32]
         iv = key_iv[32:48]
         crp.set_decrypt_key(key,iv)
@@ -1402,9 +1402,9 @@ elif isosx:
             passwdData = encode(SHA256(sp),charMap2)
             salt = entropy
             self.crp = LibCrypto()
-            iter = 0x800
+            iter_ = 0x800
             keylen = 0x400
-            key_iv = self.crp.keyivgen(passwdData, salt, iter, keylen)
+            key_iv = self.crp.keyivgen(passwdData, salt, iter_, keylen)
             self.key = key_iv[0:32]
             self.iv = key_iv[32:48]
             self.crp.set_decrypt_key(self.key, self.iv)
