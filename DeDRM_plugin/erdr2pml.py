@@ -404,8 +404,8 @@ def decryptBook(infile, outpath, make_pmlz, user_key):
             import shutil
             print("Creating PMLZ file {0}".format(os.path.basename(pmlzname)))
             myZipFile = zipfile.ZipFile(pmlzname,'w',zipfile.ZIP_STORED, False)
-            list = os.listdir(outdir)
-            for filename in list:
+            list_ = os.listdir(outdir)
+            for filename in list_:
                 localname = filename
                 filePath = os.path.join(outdir,filename)
                 if os.path.isfile(filePath):
