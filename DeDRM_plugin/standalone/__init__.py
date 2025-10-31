@@ -117,7 +117,7 @@ def print_credits():
     print(" - Apprentice Alf for the DeDRM all-in-one AppleScript tool")
 
 
-def handle_single_argument(arg, next):
+def handle_single_argument(arg, next_):
     used_up = 0
     global _additional_params
     global config_file_path
@@ -125,20 +125,20 @@ def handle_single_argument(arg, next):
     if arg in ["--username", "--password", "--output", "--outputdir"]: 
         used_up = 1
         _additional_params.append(arg)
-        if next is None or len(next) == 0: 
+        if next_ is None or len(next_) == 0:
             print_err_header()
             print("Missing parameter for argument " + arg, file=sys.stderr)
             sys.exit(1)
         else:
-            _additional_params.append(next[0])
+            _additional_params.append(next_[0])
     
     elif arg == "--config":
-        if next is None or len(next) == 0: 
+        if next_ is None or len(next_) == 0:
             print_err_header()
             print("Missing parameter for argument " + arg, file=sys.stderr)
             sys.exit(1)
 
-        config_file_path = next[0]
+        config_file_path = next_[0]
         used_up = 1
 
     elif arg in ["--help", "--credits", "--verbose", "--quiet", "--extract", "--import", "--overwrite", "--force"]:
