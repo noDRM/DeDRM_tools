@@ -128,16 +128,16 @@ class Decryptor(object):
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + etree.tostring(self._encryption, encoding="utf-8", pretty_print=True, xml_declaration=False).decode("utf-8")
 
 
-    def decompress(self, bytes):
+    def decompress(self, bytes_):
         dc = zlib.decompressobj(-15)
         try:
-            decompressed_bytes = dc.decompress(bytes)
+            decompressed_bytes = dc.decompress(bytes_)
             ex = dc.decompress(b'Z') + dc.flush()
             if ex:
                 decompressed_bytes = decompressed_bytes + ex
         except:
             # possibly not compressed by zip - just return bytes
-            return bytes
+            return bytes_
         return decompressed_bytes
 
     def decrypt(self, path, data):

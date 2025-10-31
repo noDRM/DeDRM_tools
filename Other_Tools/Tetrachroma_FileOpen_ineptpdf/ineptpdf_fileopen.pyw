@@ -187,9 +187,9 @@ gen_xref_stm = False # will be set in PDFSerializer
 ###
 ### ASN.1 parsing code from tlslite
 
-def bytesToNumber(bytes):
+def bytesToNumber(bytes_):
     total = 0L
-    for byte in bytes:
+    for byte in bytes_:
         total = (total << 8) + byte
     return total
 
@@ -198,8 +198,8 @@ class ASN1Error(Exception):
 
 class ASN1Parser(object):
     class Parser(object):
-        def __init__(self, bytes):
-            self.bytes = bytes
+        def __init__(self, bytes_):
+            self.bytes = bytes_
             self.index = 0
 
         def get(self, length):
@@ -213,9 +213,9 @@ class ASN1Parser(object):
             return x
 
         def getFixBytes(self, lengthBytes):
-            bytes = self.bytes[self.index : self.index+lengthBytes]
+            bytes_ = self.bytes[self.index : self.index+lengthBytes]
             self.index += lengthBytes
-            return bytes
+            return bytes_
 
         def getVarBytes(self, lengthLength):
             lengthBytes = self.get(lengthLength)
@@ -257,8 +257,8 @@ class ASN1Parser(object):
             else:
                 raise ASN1Error("Error decoding ASN.1")
 
-    def __init__(self, bytes):
-        p = self.Parser(bytes)
+    def __init__(self, bytes_):
+        p = self.Parser(bytes_)
         p.get(1)
         self.length = self._getASN1Length(p)
         self.value = p.getFixBytes(self.length)
