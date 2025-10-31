@@ -243,9 +243,9 @@ class InterfacePluginAction(InterfaceAction):
         added = self.db.add_books(books_to_add, add_duplicates=cfg_add_duplicates, run_hooks=False)
         if len(added[0]):
             # Record the id(s) that got added
-            for id in added[0]:
+            for id_ in added[0]:
                 print (_('{0} - Added {1}').format(PLUGIN_NAME + ' v' + PLUGIN_VERSION, books_to_add[0][0].title))
-                self.ids_of_new_books.append((id, books_to_add[0][0]))
+                self.ids_of_new_books.append((id_, books_to_add[0][0]))
         if len(added[1]):
             # Build a list of details about the books that didn't get added because duplicate were detected.
             for mi, map in added[1]:
@@ -340,10 +340,10 @@ class InterfacePluginAction(InterfaceAction):
 
         :param ids: List of calibre IDs that might serve as a home.
         '''
-        for id in ids:
+        for id_ in ids:
             # Find the first entry that matches the incoming book that doesn't have an EPUB format.
-            if not self.db.has_format(id, 'EPUB'):
-                return id
+            if not self.db.has_format(id_, 'EPUB'):
+                return id_
                 break
         return None
 
@@ -353,11 +353,11 @@ class InterfacePluginAction(InterfaceAction):
         '''
         if self.current_idx.isValid():
             self.gui.library_view.model().current_changed(self.current_idx, self.current_idx)
-        new_entries = [id for id, mi in self.ids_of_new_books]
+        new_entries = [id_ for id_, mi in self.ids_of_new_books]
         if new_entries:
             self.gui.library_view.model().db.data.books_added(new_entries)
             self.gui.library_view.model().books_added(len(new_entries))
-        new_entries.extend([id for id, mi in self.successful_format_adds])
+        new_entries.extend([id_ for id_, mi in self.successful_format_adds])
         self.gui.db_images.reset()
         self.gui.tags_view.recount()
         self.gui.library_view.model().set_highlight_only(True)
@@ -447,7 +447,7 @@ class InterfacePluginAction(InterfaceAction):
                 log += _('<p><b>New Books created:</b> {}</p>\n').format(len(self.ids_of_new_books))
                 if self.ids_of_new_books:
                     log += '<ul>\n'
-                    for id, mi in self.ids_of_new_books:
+                    for id_, mi in self.ids_of_new_books:
                         log += '<li>{}</li>\n'.format(mi.title)
                     log += '</ul>\n'
                 if self.add_books_cancelled:
@@ -464,7 +464,7 @@ class InterfacePluginAction(InterfaceAction):
                 log += _('<p><b>New EPUB formats inserted in existing calibre books:</b> {0}</p>\n').format(len(self.successful_format_adds))
                 if self.successful_format_adds:
                     log += '<ul>\n'
-                    for id, mi in self.successful_format_adds:
+                    for id_, mi in self.successful_format_adds:
                         log += '<li>{}</li>\n'.format(mi.title)
                     log += '</ul>\n'
                 log += _('<p><b>EPUB formats NOT inserted into existing calibre books:</b> {}<br />\n').format(len(self.no_home_for_book))
