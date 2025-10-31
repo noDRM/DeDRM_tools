@@ -155,10 +155,10 @@ class Dictionary(object):
 # and information used to inject the xml snippets into page*.dat files
 
 class PageParser(object):
-    def __init__(self, filename, dict, debug, flat_xml):
+    def __init__(self, filename, dict_, debug, flat_xml):
         self.fo = open(filename,'rb')
         self.id = os.path.basename(filename).replace('.dat','')
-        self.dict = dict
+        self.dict = dict_
         self.debug = debug
         self.first_unknown = True
         self.flat_xml = flat_xml
@@ -793,17 +793,17 @@ class PageParser(object):
         return xmlpage
 
 
-def fromData(dict, fname):
+def fromData(dict_, fname):
     flat_xml = True
     debug = True
-    pp = PageParser(fname, dict, debug, flat_xml)
+    pp = PageParser(fname, dict_, debug, flat_xml)
     xmlpage = pp.process()
     return xmlpage
 
-def getXML(dict, fname):
+def getXML(dict_, fname):
     flat_xml = False
     debug = True
-    pp = PageParser(fname, dict, debug, flat_xml)
+    pp = PageParser(fname, dict_, debug, flat_xml)
     xmlpage = pp.process()
     return xmlpage
 
@@ -864,11 +864,11 @@ def main(argv):
     dictFile, pageFile = args[0], args[1]
 
     # read in the string table dictionary
-    dict = Dictionary(dictFile)
-    # dict.dumpDict()
+    dict_ = Dictionary(dictFile)
+    # dict_.dumpDict()
 
     # create a page parser
-    pp = PageParser(pageFile, dict, debug, flat_xml)
+    pp = PageParser(pageFile, dict_, debug, flat_xml)
 
     xmlpage = pp.process()
 

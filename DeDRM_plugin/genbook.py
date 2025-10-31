@@ -322,7 +322,7 @@ def generateBook(bookDir, raw, fixedimage):
 
 
     print('Processing Dictionary')
-    dict = Dictionary(dictFile)
+    dict_ = Dictionary(dictFile)
 
     print('Processing Meta Data and creating OPF')
     meta_array = getMetaArray(metaFile)
@@ -375,7 +375,7 @@ def generateBook(bookDir, raw, fixedimage):
     # get page height and width from first text page for use in stylesheet scaling
     pname = 'page%04d.dat' % (pnum - 1)
     fname = os.path.join(pageDir,pname)
-    flat_xml = convert2xml.fromData(dict, fname)
+    flat_xml = convert2xml.fromData(dict_, fname)
 
     (ph, pw) = getPageDim(flat_xml)
     if (ph == '-1') or (ph == '0') : ph = '11000'
@@ -389,7 +389,7 @@ def generateBook(bookDir, raw, fixedimage):
     # this map is needed because some pages actually are made up of multiple
     # pageXXXX.xml files
     xname = os.path.join(bookDir, 'style.css')
-    flat_xml = convert2xml.fromData(dict, otherFile)
+    flat_xml = convert2xml.fromData(dict_, otherFile)
 
     # extract info.original.pid to get original page information
     pageIDMap = {}
@@ -412,7 +412,7 @@ def generateBook(bookDir, raw, fixedimage):
     open(xname, 'w').write(cssstr)
     if buildXML:
         xname = os.path.join(xmlDir, 'other0000.xml')
-        open(xname, 'wb').write(convert2xml.getXML(dict, otherFile))
+        open(xname, 'wb').write(convert2xml.getXML(dict_, otherFile))
 
     print('Processing Glyphs')
     gd = GlyphDict()
@@ -430,11 +430,11 @@ def generateBook(bookDir, raw, fixedimage):
         # print '     ', filename
         print('.', end=' ')
         fname = os.path.join(glyphsDir,filename)
-        flat_xml = convert2xml.fromData(dict, fname)
+        flat_xml = convert2xml.fromData(dict_, fname)
 
         if buildXML:
             xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
-            open(xname, 'wb').write(convert2xml.getXML(dict, fname))
+            open(xname, 'wb').write(convert2xml.getXML(dict_, fname))
 
         gp = GParser(flat_xml)
         for i in range(0, gp.count):
@@ -485,14 +485,14 @@ def generateBook(bookDir, raw, fixedimage):
         # print '     ', filename
         print(".", end=' ')
         fname = os.path.join(pageDir,filename)
-        flat_xml = convert2xml.fromData(dict, fname)
+        flat_xml = convert2xml.fromData(dict_, fname)
 
         # keep flat_xml for later svg processing
         xmllst.append(flat_xml)
 
         if buildXML:
             xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
-            open(xname, 'wb').write(convert2xml.getXML(dict, fname))
+            open(xname, 'wb').write(convert2xml.getXML(dict_, fname))
 
         # first get the html
         pagehtml, tocinfo = flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir, gd, fixedimage)
