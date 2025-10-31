@@ -179,10 +179,10 @@ class PParser(object):
                 glyphs.append(j)
             glyphs.sort()
             for gid in glyphs:
-                id='id="gl%d"' % gid
-                path = self.gd.lookup(id)
+                id_='id="gl%d"' % gid
+                path = self.gd.lookup(id_)
                 if path:
-                    result.append(id + ' ' + path)
+                    result.append(id_ + ' ' + path)
         return result
 
 

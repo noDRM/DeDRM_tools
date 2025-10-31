@@ -243,14 +243,14 @@ class GParser(object):
 class GlyphDict(object):
     def __init__(self):
         self.gdict = {}
-    def lookup(self, id):
+    def lookup(self, id_):
         # id='id="gl%d"' % val
-        if id in self.gdict:
-            return self.gdict[id]
+        if id_ in self.gdict:
+            return self.gdict[id_]
         return None
     def addGlyph(self, val, path):
-        id='id="gl%d"' % val
-        self.gdict[id] = path
+        id_='id="gl%d"' % val
+        self.gdict[id_] = path
 
 
 def generateBook(bookDir, raw, fixedimage):
@@ -401,11 +401,11 @@ def generateBook(bookDir, raw, fixedimage):
             pageidnums.append(k)
     # create a map from page ids to list of page file nums to process for that page
     for i in range(len(pageidnums)):
-        id = pageidnums[i]
-        if id in pageIDMap.keys():
-            pageIDMap[id].append(i)
+        id_ = pageidnums[i]
+        if id_ in pageIDMap.keys():
+            pageIDMap[id_].append(i)
         else:
-            pageIDMap[id] = [i]
+            pageIDMap[id_] = [i]
 
     # now get the css info
     cssstr , classlst = stylexml2css.convert2CSS(flat_xml, fontsize, ph, pw)
@@ -540,11 +540,11 @@ def generateBook(bookDir, raw, fixedimage):
     for entry in toclst:
         print(entry)
         title, pagenum = entry.split('|')
-        id = pageidnums[int(pagenum)]
+        id_ = pageidnums[int(pagenum)]
         if (raw):
-            fname = 'page%04d.svg' % id
+            fname = 'page%04d.svg' % id_
         else:
-            fname = 'page%04d.xhtml' % id
+            fname = 'page%04d.xhtml' % id_
         tlst.append('<h3><a href="'+ fname + '">' + title + '</a></h3>\n')
     tlst.append('</body>\n')
     tlst.append('</html>\n')

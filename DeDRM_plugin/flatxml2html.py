@@ -41,8 +41,8 @@ class DocParser(object):
 
     def getGlyph(self, gid):
         result = ''
-        id='id="gl%d"' % gid
-        return self.gdict.lookup(id)
+        id_='id="gl%d"' % gid
+        return self.gdict.lookup(id_)
 
     def glyphs_to_image(self, glyphList):
 
