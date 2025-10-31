@@ -248,9 +248,9 @@ class InterfacePluginAction(InterfaceAction):
                 self.ids_of_new_books.append((id_, books_to_add[0][0]))
         if len(added[1]):
             # Build a list of details about the books that didn't get added because duplicate were detected.
-            for mi, map in added[1]:
+            for mi, map_ in added[1]:
                 print (_('{0} - {1} already exists. Will try to add format later.').format(PLUGIN_NAME + ' v' + PLUGIN_VERSION, mi.title))
-                self.duplicate_book_list.append((mi, map['EPUB'], _('duplicate detected')))
+                self.duplicate_book_list.append((mi, map_['EPUB'], _('duplicate detected')))
             return False
         return True
 
