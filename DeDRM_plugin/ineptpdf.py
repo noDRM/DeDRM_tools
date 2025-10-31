@@ -2356,8 +2356,8 @@ def getPDFencryptionType(inpath):
     with open(inpath, 'rb') as inf:
         doc = doc = PDFDocument()
         parser = PDFParser(doc, inf)
-        filter = doc.initialize_and_return_filter()
-        return filter
+        filter_ = doc.initialize_and_return_filter()
+        return filter_
 
 
 
