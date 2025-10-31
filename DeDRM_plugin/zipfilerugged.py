@@ -1249,7 +1249,7 @@ class PyZipFile(ZipFile):
         This method will compile the module.py into module.pyc if
         necessary.
         """
-        dir, name = os.path.split(pathname)
+        dir_, name = os.path.split(pathname)
         if os.path.isdir(pathname):
             initname = os.path.join(pathname, "__init__.py")
             if os.path.isfile(initname):
