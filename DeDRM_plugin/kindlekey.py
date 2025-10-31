@@ -116,7 +116,7 @@ def primes(n):
 
 # Encode the bytes in data with the characters in map
 # data and map should be byte arrays
-def encode(data, map):
+def encode(data, map_):
     result = b''
     for char in data:
         if sys.version_info[0] == 2:
@@ -124,27 +124,27 @@ def encode(data, map):
         else:
             value = char
 
-        Q = (value ^ 0x80) // len(map)
-        R = value % len(map)
+        Q = (value ^ 0x80) // len(map_)
+        R = value % len(map_)
 
-        result += bytes(bytearray([map[Q]]))
-        result += bytes(bytearray([map[R]]))
+        result += bytes(bytearray([map_[Q]]))
+        result += bytes(bytearray([map_[R]]))
 
     return result
 
 # Hash the bytes in data and then encode the digest with the characters in map
-def encodeHash(data,map):
-    return encode(MD5(data),map)
+def encodeHash(data, map_):
+    return encode(MD5(data), map_)
 
 # Decode the string in data with the characters in map. Returns the decoded bytes
-def decode(data,map):
+def decode(data, map_):
     result = b''
     for i in range (0,len(data)-1,2):
-        high = map.find(data[i])
-        low = map.find(data[i+1])
+        high = map_.find(data[i])
+        low = map_.find(data[i + 1])
         if (high == -1) or (low == -1) :
             break
-        value = (((high * len(map)) ^ 0x80) & 0xFF) + low
+        value = (((high * len(map_)) ^ 0x80) & 0xFF) + low
         result += pack('B',value)
     return result
 
