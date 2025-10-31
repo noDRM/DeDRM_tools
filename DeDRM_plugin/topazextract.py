@@ -45,8 +45,8 @@ def zipUpDir(myzip, tdir, localname):
     currentdir = tdir
     if localname != "":
         currentdir = os.path.join(currentdir,localname)
-    list = os.listdir(currentdir)
-    for file in list:
+    list_ = os.listdir(currentdir)
+    for file in list_:
         afilename = file
         localfilePath = os.path.join(localname, afilename)
         realfilePath = os.path.join(currentdir,file)
