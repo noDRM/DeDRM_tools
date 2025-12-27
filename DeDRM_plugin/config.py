@@ -70,9 +70,13 @@ def checkForDeACSMkeys():
             return None, None
 
 
+
 class ConfigWidget(QWidget):
     def __init__(self, plugin_path, alfdir):
-        QWidget.__init__(self)
+        super().__init__()
+        self.plugin_path = plugin_path
+        self.alfdir = alfdir
+
 
         self.plugin_path = plugin_path
         self.alfdir = alfdir
