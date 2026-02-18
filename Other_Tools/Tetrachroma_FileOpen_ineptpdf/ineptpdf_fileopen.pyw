@@ -15,7 +15,7 @@
 # Windows system).
 #
 # Save this script file as
-# ineptpdf8.4.51.pyw and double-click on it to run it.
+# ineptpdf8.6.0.pyw and double-click on it to run it.
 
 # Revision history:
 #   1 - Initial release
@@ -110,6 +110,8 @@
 #   8.5.0  - First update by noDRM - trying to update the script to include
 #            improvements from ineptpdf.
 
+#   8.6.0  - Added decryption for encrypted responses. First commit by Freyta.
+
 """
 Decrypts Adobe ADEPT-encrypted and Fileopen PDF files.
 """
@@ -124,28 +126,19 @@ import re
 import zlib
 import struct
 import hashlib
-from itertools import chain, islice
-import xml.etree.ElementTree as etree
 import Tkinter
 import Tkconstants
 import tkFileDialog
 import tkMessageBox
 # added for fileopen support
 import urllib
-import urlparse
 import time
 import socket
-import string
 import uuid
-import subprocess
 import time
 import getpass
 from ctypes import *
-import traceback
-import inspect
-import tempfile
 import sqlite3
-import httplib
 import binascii
 
 from decimal import Decimal
@@ -155,7 +148,6 @@ try:
     from Crypto.Cipher import ARC4
     # needed for newer pdfs
     from Crypto.Cipher import AES
-    from Crypto.Hash import SHA256
     from Crypto.PublicKey import RSA
 
 except ImportError:
@@ -1431,80 +1423,7 @@ class PDFDocument(object):
     PASSWORD_PADDING = b'(\xbfN^Nu\x8aAd\x00NV\xff\xfa\x01\x08..' \
                        b'\x00\xb6\xd0h>\x80/\x0c\xa9\xfedSiz'
     
-
-
     # fileopen support
-    def initialize_fopn_flock(self, docid, param):
-        raise ADEPTError('FOPN_fLock not supported, yet ...')
-        # debug mode processing
-        global DEBUG_MODE
-        global IVERSION
-        if DEBUG_MODE == True:
-            if os.access('.',os.W_OK) == True:
-                debugfile = open('ineptpdf-'+IVERSION+'-debug.txt','w')
-            else:
-                raise ADEPTError('Cannot write debug file, current directory is not writable')
-        self.is_printable = self.is_modifiable = self.is_extractable = True
-        # get parameters and add it to the fo dictionary
-        self.fileopen['V'] = int_value(param.get('V',2))
-        # crypt base
-        (docid, param) = self.encryption
-        #rights = dict_value(param['Info'])
-        rights = param['Info']
-        #print rights
-        if DEBUG_MODE == True: debugfile.write(rights + '\n\n')
-##        for pair in rights.split(';'):
-##            try:
-##                key, value = pair.split('=',1)
-##                self.fileopen[key] = value
-##            # fix for some misconfigured INFO variables
-##            except:
-##                pass
-##        kattr = { 'SVID': 'ServiceID', 'DUID': 'DocumentID', 'I3ID': 'Ident3ID', \
-##                  'I4ID': 'Ident4ID', 'VERS': 'EncrVer', 'PRID': 'USR'}
-##        for keys in  kattr:
-##            try:
-##                self.fileopen[kattr[keys]] = self.fileopen[keys]
-##                del self.fileopen[keys]
-##            except:
-##                continue
-        # differentiate OS types
-##        sysplatform = sys.platform
-##        # if ostype is Windows
-##        if sysplatform=='win32':
-##            self.osuseragent = 'Windows NT 6.0'
-##            self.get_macaddress = self.get_win_macaddress
-##            self.fo_sethwids = self.fo_win_sethwids
-##            self.BrowserCookie = WinBrowserCookie
-##        elif sysplatform=='linux2':
-##            adeptout = 'Linux is not supported, yet.\n'
-##            raise ADEPTError(adeptout)
-##            self.osuseragent = 'Linux i686'
-##            self.get_macaddress = self.get_linux_macaddress
-##            self.fo_sethwids = self.fo_linux_sethwids
-##        else:
-##            adeptout = ''
-##            adeptout = adeptout + 'Due to various privacy violations from Apple\n'
-##            adeptout = adeptout + 'Mac OS X support is disabled by default.'
-##            raise ADEPTError(adeptout)
-##        # add static arguments for http/https request
-##        self.fo_setattributes()
-##        # add hardware specific arguments for http/https request
-##        self.fo_sethwids()
-##
-##        if 'Code' in self.urlresult:
-##            if self.fileopen['Length'] == len(self.urlresult['Code']):
-##                self.decrypt_key = self.urlresult['Code']
-##            else:
-##                self.decrypt_key = self.urlresult['Code'].decode('hex')
-##        else:
-##            raise ADEPTError('Cannot find decryption key.')
-        self.decrypt_key = 'stuff'
-        self.genkey = self.genkey_v2
-        self.decipher = self.decrypt_rc4
-        self.ready = True
-        return
-
     def initialize_fopn(self, docid, param):
         # debug mode processing
         global DEBUG_MODE
@@ -1550,12 +1469,6 @@ class PDFDocument(object):
             self.get_macaddress = self.get_win_macaddress
             self.fo_sethwids = self.fo_win_sethwids
             self.BrowserCookie = WinBrowserCookie
-        elif sysplatform=='linux2':
-            adeptout = 'Linux is not supported, yet.\n'
-            raise ADEPTError(adeptout)
-            self.osuseragent = 'Linux i686'
-            self.get_macaddress = self.get_linux_macaddress
-            self.fo_sethwids = self.fo_linux_sethwids
         else:
             adeptout = ''
             adeptout = adeptout + 'Mac OS X is not supported, yet.'
@@ -1726,14 +1639,7 @@ class PDFDocument(object):
                     self.label0.pack()
                     self.pwfieldreq = 1
                     self.gui = True
-##            else:
-##                self.pwtk = Tkinter.Tk()
-##                self.pwtk.title('Ineptpdf8')
-##                self.pwtk.minsize(150, 0)
-##                self.pwfieldreq = 0
-##                self.label1 = Tkinter.Label(self.pwtk, text="Username")
-##                self.pwfieldreq = 1
-##                self.gui = True
+                    
             if self.gui == True:
                 self.un_entry = Tkinter.Entry(self.pwtk)
                 # cursor here
@@ -1863,15 +1769,8 @@ class PDFDocument(object):
                                                     self.urlresult['RetVal'] != 'Update' and \
                                                     self.urlresult['RetVal'] != 'Answer')):
             raise ADEPTError('Decryption was not successfull.\nReason: ' + self.urlresult['Error'])
-        # fix for non-standard-conform fileopen pdfs
-##        if self.fileopen['Length'] != 5 and self.fileopen['Length'] != 16:
-##            if self.fileopen['V'] == 1:
-##                self.fileopen['Length'] = 5
-##            else:
-##                self.fileopen['Length'] = 16
+
         # patch for malformed pdfs
-        #print len(self.urlresult['Code'])
-        #print self.urlresult['Code'].encode('hex')
         if 'code' in self.urlresult:
             self.urlresult['Code'] = self.urlresult['code']
         if 'Code' in self.urlresult:
@@ -2061,17 +1960,6 @@ class PDFDocument(object):
         self.fileopen['FowpKbd']='Yes'
         self.fileopen['RequestSchema']='Default'
 
-    # get nic mac address
-    def get_linux_macaddress(self):
-        try:
-            for line in os.popen("/sbin/ifconfig"):
-                if line.find('Ether') > -1:
-                    mac = line.split()[4]
-                    break
-            return mac.replace(':','')
-        except:
-            raise ADEPTError('Cannot find MAC address. Get forum help.')
-
     def get_win_macaddress(self):
         try:
             gasize = c_ulong(5000)
@@ -2105,58 +1993,6 @@ class PDFDocument(object):
             pdid = pdid >> 5
             outputhw = outputhw + chr(darray[index])
         return outputhw
-
-    # Linux processing
-    def fo_linux_sethwids(self):
-        # linux specific attributes
-        self.fileopen['OSType']='Linux'
-        self.fileopen['AcroProduct']='AcroReader'
-        self.fileopen['AcroReader']='Yes'
-        self.fileopen['AcroVersion']='9.101'
-        self.fileopen['FSName']='ext3'
-        self.fileopen['Build']='878'
-        self.fileopen['ProdVer']='1.8.5.1'
-        self.fileopen['OSBuild']='2.6.33'
-        # write hardware keys
-        hwkey = 0
-        pmac = self.get_macaddress().decode("hex");
-        self.fileopen['Disk'] = self.fo_convert5to8(pmac[1:])
-        # get primary used default mac address
-        self.fileopen['Machine'] = self.fo_convert5to8(pmac[1:])
-        # get uuid
-        # check for reversed offline handler 6AB83F4Ah + AFh 6AB83F4Ah
-        if 'LILA' in self.fileopen:
-            pass
-        if 'Ident4ID' in self.fileopen:
-            self.fileopen['User'] = getpass.getuser()
-            self.fileopen['SaUser'] = getpass.getuser()
-            try:
-                cuser = winreg.HKEY_CURRENT_USER
-                FOW3_UUID = 'Software\\Fileopen'
-                regkey = winreg.OpenKey(cuser, FOW3_UUID)
-                userkey = winreg.QueryValueEx(regkey, 'Fowp3Uuid')[0]
-#                if self.genkey_cryptmach(userkey)[0:4] != 'ec20':
-                self.fileopen['Uuid'] = self.genkey_cryptmach(userkey)[4:]
-##                elif self.genkey_cryptmach(userkey)[0:4] != 'ec20':
-##                    self.fileopen['Uuid'] = self.genkey_cryptmach(userkey,1)[4:]
-##                else:
-            except:
-                raise ADEPTError('Cannot find FowP3Uuid file - reason might be Adobe (Reader) X.'\
-                                 'Read the FAQs for more information how to solve the problem.')
-        else:
-            self.fileopen['Uuid'] = str(uuid.uuid1())
-        # get time stamp
-        self.fileopen['Stamp'] = str(time.time())[:-3]
-        # get fileopen input pdf name + path
-        self.fileopen['DocPathUrl'] = 'file%3a%2f%2f%2f'\
-                                      + urllib.quote(os.path.normpath(INPUTFILEPATH))
-        # clear the link
-        #INPUTFILEPATH = ''
-##        # get volume name (urllib quote necessairy?) urllib.quote(
-##        self.fileopen['VolName'] = win32api.GetVolumeInformation("C:\\")[0]
-##        # get volume serial number
-##        self.fileopen['VolSN'] = str(win32api.GetVolumeInformation("C:\\")[1])
-        return
 
     # Windows processing
     def fo_win_sethwids(self):
@@ -2216,9 +2052,6 @@ class PDFDocument(object):
         # get uuid
         # check for reversed offline handler
         if 'LILA' in self.fileopen and self.fileopen['LILA'] == 'Yes':
-##            self.fileopen['User'] = win32api.GetUserName().lower()
-##            self.fileopen['SaUser'] = win32api.GetUserName()
-
             # get sid / sasid
             try:
                 psid = win32security.LookupAccountName("",self.sauser)[0]
@@ -2256,12 +2089,10 @@ class PDFDocument(object):
         # kind of a long shot we'll see about it
         else:
             self.fileopen['Uuid'] = str(uuid.uuid1())
-##        else:
-##            self.fileopen['Uuid'] = str(uuid.uuid1())
         # get time stamp
         self.fileopen['Stamp'] = str(time.time())[:-3]
         # get fileopen input pdf name + path
-        # print INPUTFILEPATH
+        
         self.fileopen['DocPathUrl'] = 'file%3a%2f%2f%2f'\
                                       + urllib.quote(INPUTFILEPATH)
         # determine voltype
@@ -2364,15 +2195,12 @@ class PDFDocument(object):
               return result
         # didn't find it, return false
         return False
-##        raise ADEPTError('Unsupported Ident4D Decryption,\n'+\
-##                             'report the bug to the ineptpdf script forum')
 
     KEYWORD_OBJ = KWD(b'obj')
 
     def getobj(self, objid):
         if not self.ready:
             raise PDFException('PDFDocument not initialized')
-        #assert self.xrefs
         if objid in self.objs:
             genno = 0
             obj = self.objs[objid]
@@ -2384,8 +2212,6 @@ class PDFDocument(object):
                 except KeyError:
                     pass
             else:
-                #if STRICT:
-                #    raise PDFSyntaxError('Cannot locate objid=%r' % objid)
                 return None
             if stmid:
                 if gen_xref_stm:
@@ -2429,16 +2255,6 @@ class PDFDocument(object):
                 (_,genno) = self.parser.nexttoken() # genno
                 #assert objid1 == objid, (objid, objid1)
                 (_,kwd) = self.parser.nexttoken()
-        # #### hack around malformed pdf files
-        #        assert objid1 == objid, (objid, objid1)
-##                if objid1 != objid:
-##                    x = []
-##                    while kwd is not self.KEYWORD_OBJ:
-##                        (_,kwd) = self.parser.nexttoken()
-##                        x.append(kwd)
-##                    if x:
-##                        objid1 = x[-2]
-##                        genno = x[-1]
 ##
                 if kwd is not self.KEYWORD_OBJ:
                     raise PDFSyntaxError(
