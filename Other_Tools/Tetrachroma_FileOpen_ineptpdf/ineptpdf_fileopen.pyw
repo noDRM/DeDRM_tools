@@ -1507,7 +1507,7 @@ class PDFDocument(object):
                 if DEBUG_MODE == True: debugfile.write( 'Decrypted Nascd:'+'\n')
                 if DEBUG_MODE == True: debugfile.write( decoded_nascd+'\n\n')
                 
-                self.urlresult = {}
+                return decoded_nascd
 
             except Exception as e:
                 raise ADEPTError("Error during ARC4 decryption with generated_key: {}".format(e))
@@ -1843,7 +1843,13 @@ class PDFDocument(object):
             
         
         if ('Nasca' in self.urlresult and 'Nascd' in self.urlresult):
-            decrypt_url(self.urlresult['Nasca'], self.urlresult['Nascd'], HASH_LOOKUP_TABLE)
+            decoded_nascd = decrypt_url(self.urlresult['Nasca'], self.urlresult['Nascd'], HASH_LOOKUP_TABLE)
+            for pair in decoded_nascd.split('&'):
+                    try:
+                        key, value = pair.split('=',1)
+                        self.urlresult[key] = value
+                    except:
+                        pass
         
         if ('RetVal' in self.urlresult and (self.urlresult['RetVal'] != '1' and \
                                             self.urlresult['RetVal'] != '2' and \
@@ -2088,12 +2094,14 @@ class PDFDocument(object):
         self.fileopen['RequestSchema']='Default'
 
     def get_win_macaddress(self):
+        # The original seemed to always generate '22222'.
         try:
-            gasize = c_ulong(5000)
-            p = create_string_buffer(5000)
-            GetAdaptersInfo = windll.iphlpapi.GetAdaptersInfo
-            GetAdaptersInfo(byref(p),byref(gasize))
-            return p[0x194:0x19a].encode('hex')
+            # Get the MAC address as a 48-bit integer
+            mac_int = uuid.getnode()
+            # Convert to a 12-character hex string
+            mac_hex = '{:012x}'.format(mac_int)
+            return mac_hex
+        
         except:
             raise ADEPTError('Cannot find MAC address. Get forum help.')
 
@@ -2147,23 +2155,24 @@ class PDFDocument(object):
         except ImportError:
             import _winreg as winreg
         try:
-            v0 = win32api.GetVolumeInformation('C:\\')
-            v1 = win32api.GetSystemInfo()[6]
+            volume_info = win32api.GetVolumeInformation('C:\\')
             # fix for possible negative integer (Python problem)
-            volserial = v0[1] & 0xffffffff
-            lowcpu = v1 & 255
-            highcpu = (v1 >> 8) & 255
+            volserial = volume_info[1] & 0xffffffff
+            
+            # We use GetNativeSystemInfo incase we are running 64bit Windows.
+            # Otherwise we return an emulated processor type.
+            processor_type = win32api.GetNativeSystemInfo()[6]
+            lowcpu = processor_type & 255
+            highcpu = (processor_type >> 8) & 255
             # changed to int
-            volserial = struct.pack('<I', int(volserial))
-            lowcpu   = struct.pack('B', lowcpu)
-            highcpu = struct.pack('B', highcpu)
-            encrypteddisk = volserial + lowcpu + highcpu
+            encrypteddisk = struct.pack('<I', volserial) + struct.pack('B', lowcpu) + struct.pack('B', highcpu)
+
             self.fileopen['Disk'] = self.fo_convert5to8(encrypteddisk)
         except:
             # no c system drive available empty disk attribute
             self.fileopen['Disk'] = ''
         # get primary used default mac address
-        pmac = self.get_macaddress().decode("hex");
+        pmac = self.get_macaddress().decode("hex")
         self.fileopen['Machine'] = self.fo_convert5to8(pmac[1:])
         if 'LIFF' in self.fileopen:
             if 'Yes' in self.fileopen['LIFF']:
