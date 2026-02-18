@@ -136,10 +136,11 @@ import time
 import socket
 import uuid
 import time
-import getpass
+import base64
 from ctypes import *
 import sqlite3
 import binascii
+import random
 
 from decimal import Decimal
 import itertools
@@ -164,7 +165,7 @@ INPUTFILEPATH = ''
 KEYFILEPATH = ''
 PASSWORD = ''
 DEBUG_MODE = False
-IVERSION = '8.4.51'
+IVERSION = '8.6.0'
 
 # Do we generate cross reference streams on output?
 # 0 = never
@@ -1425,6 +1426,92 @@ class PDFDocument(object):
     
     # fileopen support
     def initialize_fopn(self, docid, param):
+        # These 2 are used later in the encryption/decryption
+        nascv = "1" # Version - base64 encoding and URLencoded
+        nasce = "257" # Seems to be a constant
+        # Calculating the offset for certain URLs
+        def calculate_offset(offset):
+            return int(offset) & 0x800000FF
+        
+        # This is used for certain URLs
+        HASH_LOOKUP_TABLE = "".join(map(chr, [
+            0xD2, 0x8A, 0x81, 0x66, 0x90, 0xDE, 0x49, 0x98, 0x90, 0xDE, 0x49, 0x98, 0x94, 0xB1, 0x06, 0x0B,
+            0xA8, 0xF5, 0xED, 0xAF, 0x3E, 0xC9, 0x8A, 0xB4, 0x1C, 0x90, 0x23, 0x2B, 0x48, 0x73, 0x2D, 0x5B,
+            0x07, 0xE8, 0x03, 0x4D, 0x9C, 0x6E, 0x4C, 0xB0, 0x16, 0x18, 0x93, 0x30, 0x84, 0x92, 0x9D, 0xBA,
+            0xD4, 0xDB, 0x8C, 0xAB, 0x7F, 0xCE, 0x17, 0xDB, 0x7E, 0x50, 0xE3, 0x70, 0x6D, 0xF5, 0x00, 0x93,
+            0xD4, 0xDB, 0x8C, 0xAB, 0xE9, 0x21, 0xC6, 0x58, 0x6C, 0x52, 0x3D, 0x5F, 0x54, 0x4F, 0xEF, 0xD9,
+            0x66, 0x10, 0xAF, 0xB4, 0x37, 0x39, 0x22, 0x83, 0x75, 0xAB, 0x4A, 0xCB, 0xC1, 0xA5, 0x5F, 0xD6,
+            0xCE, 0xB9, 0xC7, 0xC6, 0x5F, 0xA8, 0x1B, 0x92, 0xA2, 0xDD, 0x0F, 0xA0, 0x1C, 0x36, 0x34, 0x21,
+            0x7C, 0x63, 0xBC, 0xA3, 0x95, 0xD9, 0x8F, 0x8C, 0x55, 0xB7, 0x52, 0xA3, 0xC7, 0x6D, 0x5F, 0x88,
+            0x83, 0x72, 0x5A, 0x45, 0x41, 0xA8, 0x80, 0x33, 0x80, 0xF1, 0xA3, 0x34, 0x08, 0x0F, 0x80, 0x8E,
+            0xD9, 0x2D, 0x1D, 0x65, 0xC4, 0xB9, 0x6A, 0x4C, 0x48, 0x5E, 0x19, 0x69, 0x90, 0x18, 0x91, 0xD5,
+            0x82, 0x2F, 0x67, 0x61, 0xD3, 0x5E, 0x67, 0xF2, 0xF8, 0x84, 0xDD, 0xB6, 0xDB, 0xD7, 0x8C, 0xD5,
+            0x7F, 0x7E, 0x43, 0x65, 0xE2, 0x4B, 0xDA, 0xD1, 0x1A, 0xB1, 0xDD, 0x3A, 0x8C, 0x10, 0xC2, 0x69,
+            0x5E, 0x87, 0x0A, 0x5B, 0x64, 0xDC, 0x0C, 0x1B, 0x98, 0xF4, 0x03, 0x41, 0x00, 0x7C, 0x5E, 0x31,
+            0xBA, 0x0B, 0xE5, 0x4E, 0x98, 0x51, 0xE2, 0x06, 0x74, 0x89, 0x3C, 0x53, 0x23, 0xC1, 0xFB, 0xAB,
+            0x85, 0x8B, 0x58, 0xDB, 0x09, 0x92, 0xE6, 0xD6, 0xF8, 0xFD, 0x46, 0x7C, 0xB4, 0x65, 0xF3, 0x29,
+            0x8A, 0x0B, 0x63, 0x09, 0x61, 0x3D, 0xC9, 0x6B, 0x9B, 0xCE, 0x45, 0x05, 0xC2, 0x3E, 0x8B, 0xC5,
+            0x7A, 0x07, 0xC2, 0x6A, 0xD7, 0x72, 0x10, 0xDE, 0x3A, 0x1F, 0xC8, 0x26, 0xAB, 0xB1, 0xFD, 0xE3,
+            0x55, 0xDD, 0x65, 0x5C, 0x10, 0x9E, 0x7C, 0x87, 0x0C, 0x22, 0xF9, 0xC3, 0xE9, 0x4D, 0xAB, 0x9B,
+        ]))
+        
+        def encrypt_url(plaintext_string, nasca_value, hash_table):
+            """
+            Used to encrypt URL requests. Modern versions seem to have this request
+            encrypted. Old versions would have the URL such as
+            https://products.ihserc.com/filelock/viewoffline/FileOpenOffline?Request=Setting&Stamp=*** etc.
+            Now they look like this:
+            https://products.ihserc.com/filelock/viewoffline/FileOpenOffline?Nascv=1&Nasct=297&Nasca=6933&Nasce=257&Nascd=BASE64 STRING
+            """
+            # Calculate
+            start_offset = calculate_offset(nasca_value)
+            hashed_data = hash_table[start_offset : start_offset + 12]
+            
+            # Generate the MD5 key
+            md5_hash = hashlib.md5()
+            md5_hash.update(hashed_data)
+            generated_key = md5_hash.digest()
+            
+            # Encrypt using ARC4
+            cipher = ARC4.new(generated_key)
+            encrypted_bytes = cipher.encrypt(plaintext_string.encode('utf-8'))
+            
+            # Base64 encode our encrypted bytes
+            nascd = base64.b64encode(encrypted_bytes).decode('utf-8')
+            
+            # Now we have our nascd_encoded URL
+            return nascd
+        
+        def decrypt_url(nasca, nascd, hash_table):
+            """
+            Decrypt base64 encrypted URLs
+            
+            Nasca is the offset for our decryption. Nascd is the encrypted text
+            """
+            calculated_start_offset = calculate_offset(nasca)
+            
+            input_key = hash_table[calculated_start_offset : calculated_start_offset + 12]
+            
+            md5_key = hashlib.md5()
+            # Update the md5 algorithm with our key
+            md5_key.update(input_key)
+            md5_key = md5_key.digest()
+            
+            # Our URL response we want to decrypt
+            decoded_nascd = base64.b64decode(nascd)
+            
+            try:
+                cipher_generated = ARC4.new(md5_key)
+                decoded_nascd = cipher_generated.decrypt(decoded_nascd)
+                # Save our decrypted URL to the debug file
+                if DEBUG_MODE == True: debugfile.write( 'Decrypted Nascd:'+'\n')
+                if DEBUG_MODE == True: debugfile.write( decoded_nascd+'\n\n')
+                
+                self.urlresult = {}
+
+            except Exception as e:
+                raise ADEPTError("Error during ARC4 decryption with generated_key: {}".format(e))
+        
         # debug mode processing
         global DEBUG_MODE
         global IVERSION
@@ -1492,35 +1579,57 @@ class PDFDocument(object):
         else:
             buildurl = buildurl + self.fileopen['DPRM'] + '?'
 
+        # We will remove the ports from the URL
+        buildurl = buildurl.replace(":443", "")
         # debug customization
+        # This is useful if you want to overide the calculated machine and disk parameters
         #self.fileopen['Machine'] = ''
         #self.fileopen['Disk'] = ''
 
-
+        # Added some missing request keys
         surl = ( 'Stamp', 'Mode', 'USR', 'ServiceID', 'DocumentID',\
-                 'Ident3ID', 'Ident4ID','DocStrFmt', 'OSType', 'OSName', 'OSData', 'Language',\
-                 'LngLCID', 'LngRFC1766', 'LngISO4Char', 'Build', 'ProdVer', 'EncrVer',\
-                 'Machine', 'Disk', 'Uuid', 'PrevMach', 'PrevDisk',\
-                 'FormHFT',\
+                 'Ident3ID', 'Ident4ID','DocStrFmt', 'PageCount', 'AdobePermanentId',\
+                 'AdobeInstanceId', 'OSType', 'OSName', 'OSData', 'Language',\
+                 'LngLCID', 'LngRFC1766', 'LngISO4Char', 'HostASppClass', 'HostAppFeatures',\
+                 'Build', 'ProdVer', 'EncrVer',\
+                 'Machine', 'Disk', 'Uuid', 'FormHFT',\
                  'SelServer', 'AcroVersion', 'AcroProduct', 'AcroReader',\
-                 'AcroCanEdit', 'AcroPrefIDib', 'InBrowser', 'CliAppName',\
+                 'AcroCanEdit', 'AcroPrefIDib', 'InBrowser', \
                  'DocIsLocal', 'DocPathUrl', 'VolName', 'VolType', 'VolSN',\
-                 'FSName',  'FowpKbd', 'OSBuild',\
-                  'RequestSchema')
+                 'FSName',  'FowpKbd', 'OSBuild', 'ScreenHook', 'Broker', 'RejectedDlls', 'OSName',\
+                 'RequestSchema')
 
         #settings request and special modes
         if 'EVER' in self.fileopen and float(self.fileopen['EVER']) < 3.8:
             self.fileopen['Mode'] = 'ICx'
 
+        # Save the original URL so we can b64 encrypt the parameters
         origurl = buildurl
-        buildurl = buildurl + 'Request=Setting'
+        
+        buildurl = 'Request=Setting'
         for keys in surl:
             try:
                 buildurl = buildurl + '&' + keys + '=' + self.fileopen[keys]
             except:
                 continue
-        if DEBUG_MODE == True: debugfile.write( 'settings url:\n')
+            
+        if DEBUG_MODE == True: debugfile.write( 'Raw settings url:\n')
+        if DEBUG_MODE == True: debugfile.write( origurl + buildurl+'\n\n')
+        
+        # Thanks to leecher1337 for explaining these values.
+        # https://github.com/apprenticeharper/DeDRM_tools/issues/1980#issuecomment-1144993732
+        nasct = int(round(time.time() * 1000) % 1000000) # Time - milliseconds from current time
+        nasca = random.randint(1000, 9999) # Random 4 digit number 
+        nascd = encrypt_url(buildurl, nasca, HASH_LOOKUP_TABLE) # The encrypted data
+        buildurl = origurl + "Nascv=" + nascv
+        buildurl = buildurl + "&Nasct=" + str(nasct)
+        buildurl = buildurl + "&Nasca=" + str(nasca)
+        buildurl = buildurl + "&Nasce=" + nasce
+        buildurl = buildurl + "&Nascd=" + nascd
+        
+        if DEBUG_MODE == True: debugfile.write( 'Encoded settings url:\n')
         if DEBUG_MODE == True: debugfile.write( buildurl+'\n\n')
+        
         # custom user agent identification?
         if 'AGEN' in self.fileopen:
             useragent = self.fileopen['AGEN']
@@ -1535,11 +1644,7 @@ class PDFDocument(object):
             result = u.read()
         except:
             raise ADEPTError('No internet connection or a blocking firewall!')
-##        finally:
-##            u.close()
-        # getting rid of the line feed
-        if DEBUG_MODE == True: debugfile.write('Settings'+'\n')
-        if DEBUG_MODE == True: debugfile.write(result+'\n\n')
+        
         #get rid of unnecessary characters
         result = result.rstrip('\n')
         result = result.rstrip(chr(13))
@@ -1554,13 +1659,23 @@ class PDFDocument(object):
                     self.surlresult[key] = value
             except:
                 pass
+
+        # getting rid of the line feed
+        if DEBUG_MODE == True: debugfile.write('Settings'+'\n')
+        if DEBUG_MODE == True: debugfile.write(result+'\n\n')
+        
+        # If we do have an encrypted response
+        if ('Nasca' in self.surlresult and 'Nascd' in self.surlresult):
+            decrypt_url(self.surlresult['Nasca'], self.surlresult['Nascd'], HASH_LOOKUP_TABLE)
+            
+            
         if 'RequestSchema' in self.surlresult:
             self.fileopen['RequestSchema'] = self.surlresult['RequestSchema']
         if 'ServerSessionData' in self.surlresult:
             self.fileopen['ServerSessionData'] = self.surlresult['ServerSessionData']
         if 'SetScope' in self.surlresult:
             self.fileopen['RequestSchema'] = self.surlresult['SetScope']
-        #print self.surlresult
+        # print self.surlresult
         if 'RetVal' in self.surlresult and 'SEMO' not in self.fileopen and(('Reason' in self.surlresult and \
            self.surlresult['Reason'] == 'AskUnp') or ('SetTarget' in self.surlresult and\
                                                self.surlresult['SetTarget'] == 'UnpDlg')):
@@ -1664,7 +1779,7 @@ class PDFDocument(object):
         burl = ( 'Stamp', 'Mode', 'USR', 'ServiceID', 'DocumentID',\
                  'Ident3ID', 'Ident4ID','DocStrFmt', 'OSType', 'Language',\
                  'LngLCID', 'LngRFC1766', 'LngISO4Char', 'Build', 'ProdVer', 'EncrVer',\
-                 'Machine', 'Disk', 'Uuid', 'PrevMach', 'PrevDisk', 'User', 'SaUser', 'SaSID',\
+                 'Machine', 'Disk', 'Uuid', 'User', 'SaUser', 'SaSID',\
                  # special security measures
                  'HostIsDomain', 'PhysHostname', 'LogiHostname', 'SaRefDomain',\
                  'FormHFT', 'UserName', 'UserPass', 'Session', \
@@ -1674,14 +1789,13 @@ class PDFDocument(object):
                  'FSName', 'ServerSessionData', 'FowpKbd', 'OSBuild', \
                  'DocumentSessionData', 'RequestSchema')
 
-        buildurl = origurl
-        buildurl = buildurl + 'Request=DocPerm'
+        buildurl = 'Request=DocPerm'
         for keys in burl:
             try:
                 buildurl = buildurl + '&' + keys + '=' + self.fileopen[keys]
             except:
                 continue
-        if DEBUG_MODE == True: debugfile.write('1st url:'+'\n')
+        if DEBUG_MODE == True: debugfile.write('Raw 1st url:'+'\n')
         if DEBUG_MODE == True: debugfile.write(buildurl+'\n\n')
         # custom user agent identification?
         if 'AGEN' in self.fileopen:
@@ -1690,6 +1804,18 @@ class PDFDocument(object):
         # attribute doesn't exist - take the default user agent
         else:
             urllib.URLopener.version = self.osuseragent
+            
+        nasct = int(round(time.time() * 1000) % 1000000) # Time - milliseconds from current time
+        nasca = random.randint(1000, 9999) # Random 4 digit number 
+        nascd = encrypt_url(buildurl, nasca, HASH_LOOKUP_TABLE) # The encrypted data
+        buildurl = origurl + "Nascv=" + nascv
+        buildurl = buildurl + "&Nasct=" + str(nasct)
+        buildurl = buildurl + "&Nasca=" + str(nasca)
+        buildurl = buildurl + "&Nasce=" + nasce
+        buildurl = buildurl + "&Nascd=" + nascd
+        
+        if DEBUG_MODE == True: debugfile.write( 'Encoded 1st url:\n')
+        if DEBUG_MODE == True: debugfile.write( buildurl+'\n\n')
         # try to open the url
         try:
             u = urllib.urlopen(buildurl)
@@ -1714,10 +1840,11 @@ class PDFDocument(object):
                 self.urlresult[key] = value
             except:
                 pass
-##        if 'RequestSchema' in self.surlresult:
-##            self.fileopen['RequestSchema'] = self.urlresult['RequestSchema']
-         #self.urlresult
-        #result[0:8] == 'RetVal=1') or (result[0:8] == 'RetVal=2'):
+            
+        
+        if ('Nasca' in self.urlresult and 'Nascd' in self.urlresult):
+            decrypt_url(self.urlresult['Nasca'], self.urlresult['Nascd'], HASH_LOOKUP_TABLE)
+        
         if ('RetVal' in self.urlresult and (self.urlresult['RetVal'] != '1' and \
                                             self.urlresult['RetVal'] != '2' and \
                                             self.urlresult['RetVal'] != 'Update' and \
@@ -2870,7 +2997,7 @@ def gui_main():
             "This script requires PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
-    root.title('FileOpen PDF Decrypter 8.5.0')
+    root.title('FileOpen PDF Decrypter 8.6.0')
     root.resizable(True, False)
     root.minsize(370, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
