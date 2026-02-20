@@ -2133,13 +2133,12 @@ class PDFDocument(object):
     def fo_win_sethwids(self):
         # Windows specific attributes
         self.fileopen['OSType']='Windows'
-        self.fileopen['OSName']='Vista'
-        self.fileopen['OSData']='Service%20Pack%204'
+        self.fileopen['OSName']='Win10%2064bit' # Update to Windows 10 - 64 bit
         self.fileopen['AcroProduct']='Reader'
         self.fileopen['AcroReader']='Yes'
-        self.fileopen['OSBuild']='7600'
-        self.fileopen['AcroVersion']='9.1024'
-        self.fileopen['Build']='879'
+        self.fileopen['OSBuild']='19045'
+        self.fileopen['AcroVersion']='25.256'
+        self.fileopen['Build']='1014'
         # write hardware keys
         hwkey = 0
         # get the os type and save it in ostype
