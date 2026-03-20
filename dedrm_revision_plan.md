@@ -1,6 +1,27 @@
 # DeDRM Standalone CLI — Implementation Plan
 
+> **Status: IMPLEMENTED** — See `STANDALONE_CLI.md` for the user-facing documentation.
+> This file is the developer/design reference.
+
 ## Goal
+
+Make the standalone CLI fully functional without requiring Calibre to be installed,
+**and** make it usable as a skill by AI agents with a full transparency/audit model.
+
+### Extended goal (added post-initial-plan)
+
+The tool should be safe for an AI agent to pull and invoke without requiring the agent
+to trust a pre-built binary. Design decisions to support this:
+
+- **No committed build artifacts**: `DeDRM_plugin.zip` is `.gitignored`. Agents audit
+  source, then the entry point builds the zip on demand from that audited source.
+- **Single entry point**: `dedrm.py` (~80 lines) handles dep install, stale detection,
+  and delegation. The agent only needs to know one command.
+- **Stale detection**: `dedrm.py` compares the zip mtime against the newest source file
+  mtime. If source is newer, the zip is rebuilt. Safe to call repeatedly.
+- **Calibre plugin unchanged**: all changes are additive or in standalone-only branches.
+
+Original goal (standalone CLI implementation):
 
 Make the standalone CLI (`python3 DeDRM_plugin.zip remove_drm <file>`) fully functional
 without requiring Calibre to be installed. All the DRM-removal logic already exists in

@@ -103,6 +103,55 @@ the file.
 
 ---
 
+## Using as an Agent Skill
+
+This repo is designed to be pulled and invoked by AI agents (e.g. Claude, OpenClaw,
+or any tool-use agent) as a standalone skill — no Calibre, no manual setup, no GUI.
+
+### Skill invocation
+
+```bash
+# Setup (once per environment — installs deps, builds plugin zip from source)
+python3 dedrm.py remove_drm --help
+
+# Remove DRM
+python3 dedrm.py remove_drm "<input_file>" -o "<output_file>"
+```
+
+Exit codes: `0` = success, `1` = failure. All progress goes to stderr; exit code is
+the only thing the agent needs to check.
+
+### Skill descriptor (for agent registries)
+
+```json
+{
+  "name": "dedrm",
+  "description": "Remove DRM from ebooks (Adobe ADEPT, Kindle, B&N, eReader, PDF). Auto-discovers keys from ADE/Kindle installed on the same machine. Keys cached in dedrm.json after first use.",
+  "requires": ["python3", "pip"],
+  "setup": "python3 dedrm.py --help",
+  "invoke": "python3 dedrm.py remove_drm <input_file> -o <output_file>",
+  "exit_codes": { "0": "success — DRM-free output written", "1": "failure — decryption failed or no key", "2": "usage error — bad arguments" }
+}
+```
+
+### Agent trust chain
+
+```
+1. agent clones repo
+2. agent reads dedrm.py     (~80 lines: dep install, stale check, subprocess call)
+3. agent reads build_plugin.py  (~60 lines: zip assembly from source)
+4. agent reads DeDRM_plugin/*.py  (all DRM logic, fully auditable Python)
+5. agent decides to trust
+6. agent calls: python3 dedrm.py remove_drm book.epub -o book_nodrm.epub
+7. dedrm.py installs deps if missing → builds zip if missing/stale → runs zip
+```
+
+No binary blobs in the repo. No network calls at runtime. No eval/exec of
+downloaded code. The zip is a **local build cache** derived from the source the
+agent already audited — it is `.gitignored` and never committed.
+
+---
+
 ## Architecture and Design Decisions
 
 ### Why a plugin zip?
