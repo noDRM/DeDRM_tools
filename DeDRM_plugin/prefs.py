@@ -17,7 +17,13 @@ try:
 except:
     from standalone.jsonconfig import JSONConfig
 
-from __init__ import PLUGIN_NAME
+try:
+    from __version__ import PLUGIN_NAME
+except ImportError:
+    try:
+        from __init__ import PLUGIN_NAME  # type: ignore
+    except ImportError:
+        PLUGIN_NAME = "DeDRM"  # standalone fallback
 
 class DeDRM_Prefs():
     def __init__(self, json_path=None):

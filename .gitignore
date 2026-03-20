@@ -7,3 +7,18 @@
 # Cache
 /DeDRM_plugin/__pycache__
 /DeDRM_plugin/standalone/__pycache__
+**/__pycache__
+
+# Generated build artifacts — never committed, rebuilt on demand by dedrm.py
+DeDRM_plugin.zip
+DeDRM_tools.zip
+DeDRM_plugin_build_tmp/
+
+# User key config written by standalone CLI on first successful decryption
+dedrm.json
+
+# AI agent working files
+.claude/
+
+# Generated HTML from markdown plan docs
+*.html

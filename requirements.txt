@@ -1,0 +1,13 @@
+# DeDRM standalone CLI — Python dependencies
+#
+# Install with:
+#   pip install -r requirements.txt
+#
+# Note: when running inside Calibre these are all bundled by Calibre itself.
+# These are only needed for the standalone CLI (python3 DeDRM_plugin.zip ...).
+
+# Crypto primitives used by all DRM-removal modules
+pycryptodome>=3.9.0
+
+# XML parsing used by epubfontdecrypt.py and ineptepub.py
+lxml>=4.6.0

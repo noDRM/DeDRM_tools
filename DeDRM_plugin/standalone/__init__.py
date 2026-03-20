@@ -178,10 +178,10 @@ def execute_action(action, filenames, params):
 
     elif action == "remove_drm":
         if not os.path.isfile(os.path.abspath(config_file_path)):
-            print("Config file missing ...")
-        
+            print("Config file not found — will use defaults and auto-discover keys.")
+
         from standalone.remove_drm import perform_action
-        perform_action(params, filenames)
+        sys.exit(perform_action(params, filenames))
         
     elif action == "config":
         import prefs
