@@ -15,7 +15,7 @@
 # Windows system).
 #
 # Save this script file as
-# ineptpdf8.6.0.pyw and double-click on it to run it.
+# ineptpdf8.6.1.pyw and double-click on it to run it.
 
 # Revision history:
 #   1 - Initial release
@@ -111,6 +111,8 @@
 #            improvements from ineptpdf.
 
 #   8.6.0  - Added decryption for encrypted responses. First commit by Freyta.
+#   8.6.1  - Added option to decrypt new encrypted responses. Should not
+#            encrypt all requests by default.
 
 """
 Decrypts Adobe ADEPT-encrypted and Fileopen PDF files.
@@ -165,7 +167,9 @@ INPUTFILEPATH = ''
 KEYFILEPATH = ''
 PASSWORD = ''
 DEBUG_MODE = False
-IVERSION = '8.6.0'
+IVERSION = '8.6.1'
+# If we need to decrypt the new request format
+NEW_ENCRYPTION = False
 
 # Do we generate cross reference streams on output?
 # 0 = never
@@ -1488,6 +1492,7 @@ class PDFDocument(object):
             
             Nasca is the offset for our decryption. Nascd is the encrypted text
             """
+            global DEBUG_MODE
             calculated_start_offset = calculate_offset(nasca)
             
             input_key = hash_table[calculated_start_offset : calculated_start_offset + 12]
@@ -1565,7 +1570,7 @@ class PDFDocument(object):
         self.fo_setattributes()
         # add hardware specific arguments for http/https request
         self.fo_sethwids()
-        #if DEBUG_MODE == True: debugfile.write(self.fileopen)
+        # if DEBUG_MODE == True: debugfile.write(self.fileopen)
         if 'UURL' in self.fileopen:
             buildurl = self.fileopen['UURL']
         else:
@@ -1616,19 +1621,20 @@ class PDFDocument(object):
         if DEBUG_MODE == True: debugfile.write( 'Raw settings url:\n')
         if DEBUG_MODE == True: debugfile.write( origurl + buildurl+'\n\n')
         
-        # Thanks to leecher1337 for explaining these values.
-        # https://github.com/apprenticeharper/DeDRM_tools/issues/1980#issuecomment-1144993732
-        nasct = int(round(time.time() * 1000) % 1000000) # Time - milliseconds from current time
-        nasca = random.randint(1000, 9999) # Random 4 digit number 
-        nascd = encrypt_url(buildurl, nasca, HASH_LOOKUP_TABLE) # The encrypted data
-        buildurl = origurl + "Nascv=" + nascv
-        buildurl = buildurl + "&Nasct=" + str(nasct)
-        buildurl = buildurl + "&Nasca=" + str(nasca)
-        buildurl = buildurl + "&Nasce=" + nasce
-        buildurl = buildurl + "&Nascd=" + nascd
-        
-        if DEBUG_MODE == True: debugfile.write( 'Encoded settings url:\n')
-        if DEBUG_MODE == True: debugfile.write( buildurl+'\n\n')
+        if NEW_ENCRYPTION:
+            # Thanks to leecher1337 for explaining these values.
+            # https://github.com/apprenticeharper/DeDRM_tools/issues/1980#issuecomment-1144993732
+            nasct = int(round(time.time() * 1000) % 1000000) # Time - milliseconds from current time
+            nasca = random.randint(1000, 9999) # Random 4 digit number 
+            nascd = encrypt_url(buildurl, nasca, HASH_LOOKUP_TABLE) # The encrypted data
+            buildurl = "Nascv=" + nascv
+            buildurl = buildurl + "&Nasct=" + str(nasct)
+            buildurl = buildurl + "&Nasca=" + str(nasca)
+            buildurl = buildurl + "&Nasce=" + nasce
+            buildurl = buildurl + "&Nascd=" + nascd
+            
+            if DEBUG_MODE == True: debugfile.write( 'Encoded settings url:\n')
+            if DEBUG_MODE == True: debugfile.write( origurl + buildurl+'\n\n')
         
         # custom user agent identification?
         if 'AGEN' in self.fileopen:
@@ -1639,7 +1645,7 @@ class PDFDocument(object):
             urllib.URLopener.version = self.osuseragent
         # try to open the url
         try:
-            u = urllib.urlopen(buildurl)
+            u = urllib.urlopen(origurl + buildurl)
             u.geturl()
             result = u.read()
         except:
@@ -1804,21 +1810,22 @@ class PDFDocument(object):
         # attribute doesn't exist - take the default user agent
         else:
             urllib.URLopener.version = self.osuseragent
-            
-        nasct = int(round(time.time() * 1000) % 1000000) # Time - milliseconds from current time
-        nasca = random.randint(1000, 9999) # Random 4 digit number 
-        nascd = encrypt_url(buildurl, nasca, HASH_LOOKUP_TABLE) # The encrypted data
-        buildurl = origurl + "Nascv=" + nascv
-        buildurl = buildurl + "&Nasct=" + str(nasct)
-        buildurl = buildurl + "&Nasca=" + str(nasca)
-        buildurl = buildurl + "&Nasce=" + nasce
-        buildurl = buildurl + "&Nascd=" + nascd
         
-        if DEBUG_MODE == True: debugfile.write( 'Encoded 1st url:\n')
-        if DEBUG_MODE == True: debugfile.write( buildurl+'\n\n')
+        if NEW_ENCRYPTION:
+            nasct = int(round(time.time() * 1000) % 1000000) # Time - milliseconds from current time
+            nasca = random.randint(1000, 9999) # Random 4 digit number 
+            nascd = encrypt_url(buildurl, nasca, HASH_LOOKUP_TABLE) # The encrypted data
+            buildurl = "Nascv=" + nascv
+            buildurl = buildurl + "&Nasct=" + str(nasct)
+            buildurl = buildurl + "&Nasca=" + str(nasca)
+            buildurl = buildurl + "&Nasce=" + nasce
+            buildurl = buildurl + "&Nascd=" + nascd
+            
+            if DEBUG_MODE == True: debugfile.write( 'Encoded 1st url:\n')
+            if DEBUG_MODE == True: debugfile.write( buildurl+'\n\n')
         # try to open the url
         try:
-            u = urllib.urlopen(buildurl)
+            u = urllib.urlopen(origurl + buildurl)
             u.geturl()
             result = u.read()
         except:
@@ -1913,6 +1920,8 @@ class PDFDocument(object):
                 self.decrypt_key = self.urlresult['Code'].decode('hex')
         else:
             raise ADEPTError('Cannot find decryption key.')
+        
+        print("Decryption code is: {}".format(self.urlresult['Code']))
         
 
 
@@ -2905,9 +2914,13 @@ class DecryptionDialog(Tkinter.Frame):
         Tkinter.Label(body, text='Output file').grid(row=2)
         self.outpath = Tkinter.Entry(body, width=30)
         self.outpath.grid(row=2, column=1, sticky=sticky)
-        debugmode = Tkinter.Checkbutton(self, text = "Debug Mode (writable directory required)", command=self.debug_toggle, height=2, \
+        debugmode = Tkinter.Checkbutton(self, text = "Debug Mode (writable directory required)", command=self.debug_toggle, height=1, \
                  width = 40)
         debugmode.pack()
+        newurlencryption = Tkinter.Checkbutton(self, text = "New encryption URL scheme", command=self.newurlenc_toggle, height=2, \
+                 width = 40)
+        newurlencryption.pack()
+        
         button = Tkinter.Button(body, text="...", command=self.get_outpath)
         button.grid(row=2, column=2)
         buttons = Tkinter.Frame(self)
@@ -2951,6 +2964,13 @@ class DecryptionDialog(Tkinter.Frame):
             DEBUG_MODE = True
         else:
             DEBUG_MODE = False
+
+    def newurlenc_toggle(self):
+        global NEW_ENCRYPTION
+        if NEW_ENCRYPTION == False:
+            NEW_ENCRYPTION = True
+        else:
+            NEW_ENCRYPTION = False
 
     def get_outpath(self):
         outpath = tkFileDialog.asksaveasfilename(
@@ -3005,7 +3025,7 @@ def gui_main():
             "This script requires PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
-    root.title('FileOpen PDF Decrypter 8.6.0')
+    root.title('FileOpen PDF Decrypter 8.6.1')
     root.resizable(True, False)
     root.minsize(370, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
