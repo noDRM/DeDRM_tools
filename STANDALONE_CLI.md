@@ -10,16 +10,15 @@ Mobipocket / KFX, eReader PDB, and standard password-encrypted PDFs.
 ## Quick Start
 
 ```bash
-# 1. Install Python dependencies (one time)
-pip install -r requirements.txt
-
-# 2. Remove DRM — that's it
 python3 dedrm.py remove_drm "My Book.epub" -o "My Book (DRM-free).epub"
 ```
 
-`dedrm.py` handles everything else automatically: it builds the plugin zip
-from source on first run (and rebuilds whenever source files change), then
-delegates to the plugin's CLI.
+That's it. On first run `dedrm.py` automatically:
+1. Installs missing Python dependencies (`lxml`, `pycryptodome`)
+2. Builds the plugin zip from source
+3. Runs the CLI
+
+On subsequent runs it goes straight to step 3 (or rebuilds the zip if source has changed).
 
 ---
 
