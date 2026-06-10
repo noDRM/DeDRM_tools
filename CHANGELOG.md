@@ -97,7 +97,7 @@ This is v10.0.9, a release candidate for v10.1.0. I don't expect there to be maj
 - Fix font decryption not working with some books (fixes #347), thanks for the patch @bydioeds. 
 - Fix a couple unicode errors for Python2 in Kindle and Nook code.
 
-## Fixes on master (not yet released):
+## Fixes in v10.1.0 (2026-06-10):
 
 - Fix a bug where decrypting a 40-bit RC4 pdf with R=2 didn't work.
 - Fix a bug where decrypting a 256-bit AES pdf with V=5 didn't work.
@@ -110,4 +110,7 @@ This is v10.0.9, a release candidate for v10.1.0. I don't expect there to be maj
 - Make Kobo DRM removal not fail when there are undownloaded ebooks (#384, thanks @precondition).
 - Fix Obok import failing in Calibre flatpak due to missing ip command (#586 and #585, thanks @jcotton42).
 - Don't re-pack EPUB if there's no DRM to remove and no postprocessing done (fixes #555).
+- Update note about K4PC key import/export in help file (fixes #663).
+- Update Obok readme to include wmic requirement (fixes #670).
+- Remove future import from ion.py.
 

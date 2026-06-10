@@ -3,7 +3,7 @@ DeDRM tools for ebooks
 
 This is a fork of Apprentice Harper's version of the DeDRM tools. Apprentice Harper said that the original version of the plugin [is no longer maintained](https://github.com/apprenticeharper/DeDRM_tools#no-longer-maintained), so I've taken over, merged a bunch of open PRs, and added a ton more features and bugfixes. 
 
-The latest stable (released) version is v10.0.3 which [can be downloaded here](https://github.com/noDRM/DeDRM_tools/releases/tag/v10.0.3). The latest beta is v10.0.9, as a release candidate for v10.1.0. It [can be downloaded here](https://github.com/noDRM/DeDRM_tools/releases/tag/v10.0.9). 
+The latest stable (released) version is v10.1.0 which [can be downloaded here](https://github.com/noDRM/DeDRM_tools/releases/tag/v10.1.0). 
 
 The latest alpha version is available [at this link](https://github.com/noDRM/DeDRM_tools_autorelease/releases). This version is completely untested and will contain the latest code changes in this repository. With each commit in this repository, a new automatic alpha version will be uploaded there. If you want the most up-to-date code to test things and are okay with the plugin occasionally breaking, you can download this version.
 
