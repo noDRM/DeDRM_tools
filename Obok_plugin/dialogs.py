@@ -9,19 +9,22 @@ TEXT_DRM_FREE = ' (*: drm - free)'
 LAB_DRM_FREE = '* : drm - free'
 
 try:
-    from PyQt5.Qt import (Qt, QVBoxLayout, QLabel, QApplication, QGroupBox, 
-                          QDialogButtonBox, QHBoxLayout, QTextBrowser, QProgressDialog, 
-                          QTimer, QSize, QDialog, QIcon, QTableWidget, QTableWidgetItem)
+    from PyQt5.Qt import (Qt, QVBoxLayout, QLabel, QApplication, QGroupBox,
+                          QDialogButtonBox, QHBoxLayout, QTextBrowser, QProgressDialog,
+                          QTimer, QSize, QDialog, QIcon, QTableWidget, QTableWidgetItem,
+                          QLineEdit)
 except ImportError:
-    from PyQt4.Qt import (Qt, QVBoxLayout, QLabel, QApplication, QGroupBox, 
-                          QDialogButtonBox, QHBoxLayout, QTextBrowser, QProgressDialog, 
-                          QTimer, QSize, QDialog, QIcon, QTableWidget, QTableWidgetItem)
+    from PyQt4.Qt import (Qt, QVBoxLayout, QLabel, QApplication, QGroupBox,
+                          QDialogButtonBox, QHBoxLayout, QTextBrowser, QProgressDialog,
+                          QTimer, QSize, QDialog, QIcon, QTableWidget, QTableWidgetItem,
+                          QLineEdit)
 
 try:
     from PyQt5.QtWidgets import (QListWidget, QAbstractItemView)
 except ImportError:
         from PyQt4.QtGui import (QListWidget, QAbstractItemView)
 
+from calibre.constants import DEBUG
 from calibre.gui2 import gprefs, warning_dialog, error_dialog
 from calibre.gui2.dialogs.message_box import MessageBox
 
@@ -32,6 +35,7 @@ from calibre_plugins.obok_dedrm.utilities import (SizePersistedDialog, ImageTitl
                                         )
 from calibre_plugins.obok_dedrm.__init__ import (PLUGIN_NAME,  
                         PLUGIN_SAFE_NAME, PLUGIN_VERSION, PLUGIN_DESCRIPTION)
+from calibre_plugins.obok_dedrm.title_match import LibraryMatcher, title_keys
 
 try:
     debug_print("obok::dialogs.py - loading translations")
@@ -44,17 +48,35 @@ class SelectionDialog(SizePersistedDialog):
     '''
     Dialog to select the kobo books to decrypt
     '''
-    def __init__(self, gui, interface_action, books):
+    def __init__(self, gui, interface_action, books, plugin_prefs, matcher=None):
         '''
         :param gui: Parent gui
         :param interface_action: InterfaceActionObject (InterfacePluginAction class from action.py)
         :param books: list of Kobo book
+        :param plugin_prefs: JSONConfig plugin preferences (for persisting hidden books)
+        :param matcher: LibraryMatcher over titles already in the calibre library
         '''
-        
+
         self.books = books
         self.gui = gui
         self.interface_action = interface_action
-        self.books = books
+        self.plugin_prefs = plugin_prefs
+        self.hidden_book_ids = set(plugin_prefs.get('hidden_books', []))
+        self.matcher = matcher if matcher is not None else LibraryMatcher([])
+        # Default to the import-eligible diff (books not yet in calibre); the
+        # 'Not in Library' button below is checked to match this on open.
+        self.library_filter_mode = 'not_in'  # None | 'in' | 'not_in'
+
+        # Precompute, once, which Kobo books are already in the calibre library.
+        # Done here -- not in apply_filters -- so the fuzzy scan does not re-run
+        # on every keystroke / filter toggle.
+        self.in_library_ids = set()
+        for book in self.books:
+            if self.matcher.match(book.title, book.author) is not None:
+                self.in_library_ids.add(book.volumeid)
+
+        if DEBUG:
+            self._log_match_diagnostics()
 
         SizePersistedDialog.__init__(self, gui, PLUGIN_NAME + 'plugin:selections dialog')
         self.setWindowTitle(_(PLUGIN_NAME + ' v' + PLUGIN_VERSION))
@@ -73,12 +95,18 @@ class SelectionDialog(SizePersistedDialog):
         title_layout.setAlignment(Qt.AlignTop)
 
         layout.addSpacing(5)
+
+        # Search box
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel(_('Search:'), self))
+        self.search_box = QLineEdit(self)
+        self.search_box.setPlaceholderText(_('Filter by title, author, or series...'))
+        self.search_box.textChanged.connect(self._apply_filters)
+        search_layout.addWidget(self.search_box)
+        layout.addLayout(search_layout)
+
         main_layout = QHBoxLayout()
         layout.addLayout(main_layout)
-#        self.listy = QListWidget()
-#        self.listy.setSelectionMode(QAbstractItemView.ExtendedSelection)
-#        main_layout.addWidget(self.listy)
-#        self.listy.addItems(books)
         self.books_table = BookListTableWidget(self)
         main_layout.addWidget(self.books_table)
 
@@ -87,28 +115,104 @@ class SelectionDialog(SizePersistedDialog):
         button_box.accepted.connect(self._ok_clicked)
         button_box.rejected.connect(self.reject)
         self.select_all_button = button_box.addButton(_("Select All"), QDialogButtonBox.ResetRole)
-        self.select_all_button.setToolTip(_("Select all books to add them to the calibre library."))
+        self.select_all_button.setToolTip(_("Select all visible books."))
         self.select_all_button.clicked.connect(self._select_all_clicked)
-        self.select_drm_button = button_box.addButton(_("All with DRM"), QDialogButtonBox.ResetRole)
-        self.select_drm_button.setToolTip(_("Select all books with DRM."))
-        self.select_drm_button.clicked.connect(self._select_drm_clicked)
-        self.select_free_button = button_box.addButton(_("All DRM free"), QDialogButtonBox.ResetRole)
-        self.select_free_button.setToolTip(_("Select all books without DRM."))
-        self.select_free_button.clicked.connect(self._select_free_clicked)
+        self.deselect_all_button = button_box.addButton(_("Deselect All"), QDialogButtonBox.ResetRole)
+        self.deselect_all_button.setToolTip(_("Deselect all books."))
+        self.deselect_all_button.clicked.connect(self._deselect_all_clicked)
+        self.hide_button = button_box.addButton(_("Hide Selected"), QDialogButtonBox.ResetRole)
+        self.hide_button.setToolTip(_("Hide checked books from this list. They won't appear next time."))
+        self.hide_button.clicked.connect(self._hide_selected_clicked)
+        self.show_hidden_button = button_box.addButton(_("Show Hidden"), QDialogButtonBox.ResetRole)
+        self.show_hidden_button.setToolTip(_("Show all previously hidden books."))
+        self.show_hidden_button.clicked.connect(self._show_hidden_clicked)
+        self.in_library_button = button_box.addButton(_("In Library"), QDialogButtonBox.ResetRole)
+        self.in_library_button.setToolTip(_("Toggle: show only books already in your calibre library."))
+        self.in_library_button.setCheckable(True)
+        self.in_library_button.clicked.connect(self._in_library_clicked)
+        self.not_in_library_button = button_box.addButton(_("Not in Library"), QDialogButtonBox.ResetRole)
+        self.not_in_library_button.setToolTip(_("Toggle: show only books NOT yet in your calibre library (eligible to import)."))
+        self.not_in_library_button.setCheckable(True)
+        self.not_in_library_button.clicked.connect(self._not_in_library_clicked)
+        self.not_in_library_button.setChecked(True)  # default view: not-in-library
         layout.addWidget(button_box)
 
         # Cause our dialog size to be restored from prefs or created on first usage
         self.resize_dialog()
         self.books_table.populate_table(self.books)
+        self._apply_filters()
+
+    def _log_match_diagnostics(self):
+        '''
+        Verbose in-library match breakdown. Only called when calibre is run with
+        DEBUG on (e.g. ``calibre-debug -g``); silent and skipped in normal use.
+        '''
+        in_lib_exact = in_lib_approx = 0
+        author_mismatch = []
+        for book in self.books:
+            hit = self.matcher.match(book.title, book.author)
+            if hit is not None:
+                if hit in title_keys(book.title):
+                    in_lib_exact += 1
+                else:
+                    in_lib_approx += 1
+                    debug_print("OBOK DIAG: approximate in-library match: %r (%r) ~= calibre %r"
+                                % (book.title, book.author, hit))
+            elif self.matcher.title_exists(book.title):
+                # Title is in the library but the author didn't match: the
+                # author-first gate is treating it as a different book.
+                author_mismatch.append((book.title, book.author))
+        debug_print("OBOK DIAG: %d Kobo books; in-library exact=%d approx=%d; not-in-library=%d"
+                    % (len(self.books), in_lib_exact, in_lib_approx,
+                       len(self.books) - len(self.in_library_ids)))
+        if author_mismatch:
+            debug_print("OBOK DIAG: %d not-in-library books whose TITLE exists under a different author:"
+                        % len(author_mismatch))
+            for t, a in author_mismatch[:15]:
+                debug_print("OBOK DIAG:   author-mismatch: %r (Kobo author: %r)" % (t, a))
+
+    def _apply_filters(self):
+        search_text = self.search_box.text().lower()
+        self.books_table.apply_filters(search_text, self.hidden_book_ids,
+                                       self.library_filter_mode, self.in_library_ids)
+
+    def _in_library_clicked(self):
+        # 'In Library' and 'Not in Library' are mutually exclusive views.
+        if self.in_library_button.isChecked():
+            self.not_in_library_button.setChecked(False)
+            self.library_filter_mode = 'in'
+        else:
+            self.library_filter_mode = None
+        self._apply_filters()
+
+    def _not_in_library_clicked(self):
+        if self.not_in_library_button.isChecked():
+            self.in_library_button.setChecked(False)
+            self.library_filter_mode = 'not_in'
+        else:
+            self.library_filter_mode = None
+        self._apply_filters()
+
+    def _save_hidden_books(self):
+        self.plugin_prefs['hidden_books'] = list(self.hidden_book_ids)
+
+    def _hide_selected_clicked(self):
+        new_ids = self.books_table.get_checked_volumeids()
+        self.hidden_book_ids.update(new_ids)
+        self._save_hidden_books()
+        self.books_table.deselect_all()
+        self._apply_filters()
+
+    def _show_hidden_clicked(self):
+        self.hidden_book_ids.clear()
+        self._save_hidden_books()
+        self._apply_filters()
 
     def _select_all_clicked(self):
         self.books_table.select_all()
 
-    def _select_drm_clicked(self):
-        self.books_table.select_drm(True)
-
-    def _select_free_clicked(self):
-        self.books_table.select_drm(False)
+    def _deselect_all_clicked(self):
+        self.books_table.deselect_all()
 
     def _help_link_activated(self, url):
         '''
@@ -120,7 +224,12 @@ class SelectionDialog(SizePersistedDialog):
         '''
         Build an index of the selected titles
         '''
-        if len(self.books_table.selectedItems()):
+        books = self.books_table.get_books()
+        if len(books):
+            # Auto-hide the books we're about to import
+            for book in books:
+                self.hidden_book_ids.add(book.volumeid)
+            self._save_hidden_books()
             self.accept()
         else:
             msg = 'You must make a selection!'
@@ -137,13 +246,14 @@ class BookListTableWidget(QTableWidget):
 
     def __init__(self, parent):
         QTableWidget.__init__(self, parent)
+        self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
 
     def populate_table(self, books):
         self.clear()
         self.setAlternatingRowColors(True)
         self.setRowCount(len(books))
-        header_labels = ['DRM', _('Title'), _('Author'), _('Series'), 'book_id']
+        header_labels = ['', 'DRM', _('Title'), _('Author'), _('Series'), 'book_id']
         self.setColumnCount(len(header_labels))
         self.setHorizontalHeaderLabels(header_labels)
         self.verticalHeader().setDefaultSectionSize(24)
@@ -156,12 +266,11 @@ class BookListTableWidget(QTableWidget):
 
         self.setSortingEnabled(False)
         self.resizeColumnsToContents()
-        self.setMinimumColumnWidth(1, 100)
+        self.setColumnWidth(0, 30)
         self.setMinimumColumnWidth(2, 100)
+        self.setMinimumColumnWidth(3, 100)
         self.setMinimumSize(300, 0)
-        if len(books) > 0:
-            self.selectRow(0)
-        self.hideColumn(4)
+        self.hideColumn(5)
         self.setSortingEnabled(True)
 
     def setMinimumColumnWidth(self, col, minimum):
@@ -169,53 +278,98 @@ class BookListTableWidget(QTableWidget):
             self.setColumnWidth(col, minimum)
 
     def populate_table_row(self, row, book):
+        # Column 0: Checkbox
+        check_item = QTableWidgetItem()
+        check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+        check_item.setCheckState(Qt.Unchecked)
+        check_item.setData(Qt.UserRole, book.volumeid)
+        self.setItem(row, 0, check_item)
+
+        # Column 1: DRM icon
         if book.has_drm:
             icon = get_icon('drm-locked.png')
             val = 1
         else:
             icon = get_icon('drm-unlocked.png')
             val = 0
-
         status_cell = IconWidgetItem(None, icon, val)
         status_cell.setData(Qt.UserRole, val)
-        self.setItem(row, 0, status_cell)
-        self.setItem(row, 1, ReadOnlyTableWidgetItem(book.title))
-        self.setItem(row, 2, AuthorTableWidgetItem(book.author, book.author))
-        self.setItem(row, 3, SeriesTableWidgetItem(book.series, book.series_index))
-        self.setItem(row, 4, NumericTableWidgetItem(row))
+        self.setItem(row, 1, status_cell)
+
+        # Column 2: Title (store lowercased title in UserRole for search filtering)
+        title_item = ReadOnlyTableWidgetItem(book.title)
+        title_item.setData(Qt.UserRole, book.title.lower())
+        self.setItem(row, 2, title_item)
+
+        # Column 3: Author
+        self.setItem(row, 3, AuthorTableWidgetItem(book.author, book.author))
+
+        # Column 4: Series
+        self.setItem(row, 4, SeriesTableWidgetItem(book.series, book.series_index))
+
+        # Column 5: book_id (hidden)
+        self.setItem(row, 5, NumericTableWidgetItem(row))
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Space:
+            row = self.currentRow()
+            if row >= 0 and not self.isRowHidden(row):
+                item = self.item(row, 0)
+                if item.checkState() == Qt.Checked:
+                    item.setCheckState(Qt.Unchecked)
+                else:
+                    item.setCheckState(Qt.Checked)
+        else:
+            QTableWidget.keyPressEvent(self, event)
 
     def get_books(self):
-#        debug_print("BookListTableWidget:get_books - self.books:", self.books)
         books = []
-        if len(self.selectedItems()):
-            for row in range(self.rowCount()):
-#                debug_print("BookListTableWidget:get_books - row:", row)
-                if self.item(row, 0).isSelected():
-                    book_num = convert_qvariant(self.item(row, 4).data(Qt.DisplayRole))
-                    debug_print("BookListTableWidget:get_books - book_num:", book_num)
-                    book = self.books[book_num]
-                    debug_print("BookListTableWidget:get_books - book:", book.title)
-                    books.append(book)
+        for row in range(self.rowCount()):
+            if self.item(row, 0).checkState() == Qt.Checked:
+                book_num = convert_qvariant(self.item(row, 5).data(Qt.DisplayRole))
+                book = self.books[book_num]
+                books.append(book)
         return books
 
-    def select_all(self):
-        self .selectAll()
-
-    def select_drm(self, has_drm):
-        self.clearSelection()
-        current_selection_mode = self.selectionMode()
-        self.setSelectionMode(QAbstractItemView.MultiSelection)
+    def get_checked_volumeids(self):
+        ids = set()
         for row in range(self.rowCount()):
-#           debug_print("BookListTableWidget:select_drm - row:", row)
-            if convert_qvariant(self.item(row, 0).data(Qt.UserRole)) == 1:
-#                debug_print("BookListTableWidget:select_drm - has DRM:", row)
-                if has_drm:
-                    self.selectRow(row)
+            if self.item(row, 0).checkState() == Qt.Checked:
+                ids.add(self.item(row, 0).data(Qt.UserRole))
+        return ids
+
+    def select_all(self):
+        for row in range(self.rowCount()):
+            if not self.isRowHidden(row):
+                self.item(row, 0).setCheckState(Qt.Checked)
+
+    def deselect_all(self):
+        for row in range(self.rowCount()):
+            self.item(row, 0).setCheckState(Qt.Unchecked)
+
+    def apply_filters(self, search_text, hidden_book_ids, library_filter_mode=None, in_library_ids=None):
+        in_library_ids = in_library_ids or set()
+        for row in range(self.rowCount()):
+            volumeid = self.item(row, 0).data(Qt.UserRole)
+            title_lower = self.item(row, 2).data(Qt.UserRole)
+            author_text = self.item(row, 3).text().lower() if self.item(row, 3).text() else ''
+            series_text = self.item(row, 4).text().lower() if self.item(row, 4).text() else ''
+
+            hidden_by_search = bool(search_text) and (
+                search_text not in title_lower and
+                search_text not in author_text and
+                search_text not in series_text
+            )
+            hidden_by_user = volumeid in hidden_book_ids
+            in_lib = volumeid in in_library_ids
+            if library_filter_mode == 'in':
+                hidden_by_library = not in_lib
+            elif library_filter_mode == 'not_in':
+                hidden_by_library = in_lib
             else:
-#                debug_print("BookListTableWidget:select_drm - DRM free:", row)
-                if not has_drm:
-                    self.selectRow(row)
-        self.setSelectionMode(current_selection_mode)
+                hidden_by_library = False
+
+            self.setRowHidden(row, hidden_by_search or hidden_by_user or hidden_by_library)
 
 
 class DecryptAddProgressDialog(QProgressDialog):

@@ -429,7 +429,7 @@ class KoboLibrary(object):
         """The list of all MAC addresses on this machine."""
         macaddrs = []
         if sys.platform.startswith('win'):
-            c = re.compile('\s?(' + '[0-9a-f]{2}[:\-]' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
+            c = re.compile(r'\s?(' + r'[0-9a-f]{2}[:\-]' * 5 + r'[0-9a-f]{2})(\s|$)', re.IGNORECASE)
             try: 
                 output = subprocess.Popen('ipconfig /all', shell=True, stdout=subprocess.PIPE, text=True).stdout
                 for line in output:
@@ -443,7 +443,7 @@ class KoboLibrary(object):
                     if m:
                         macaddrs.append(re.sub("-", ":", m.group(1)).upper())
         elif sys.platform.startswith('darwin'):
-            c = re.compile('\s(' + '[0-9a-f]{2}:' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
+            c = re.compile(r'\s(' + '[0-9a-f]{2}:' * 5 + r'[0-9a-f]{2})(\s|$)', re.IGNORECASE)
             output = subprocess.check_output('/sbin/ifconfig -a', shell=True, encoding='utf-8')
             matches = c.findall(output)
             for m in matches:
@@ -459,14 +459,14 @@ class KoboLibrary(object):
         else:
             # final fallback
             # let's try ip
-            c = re.compile('\s(' + '[0-9a-f]{2}:' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
+            c = re.compile(r'\s(' + '[0-9a-f]{2}:' * 5 + r'[0-9a-f]{2})(\s|$)', re.IGNORECASE)
             for line in os.popen('ip -br link'):
                 m = c.search(line)
                 if m:
                     macaddrs.append(m.group(1).upper())
 
             # let's try ipconfig under wine
-            c = re.compile('\s(' + '[0-9a-f]{2}-' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
+            c = re.compile(r'\s(' + '[0-9a-f]{2}-' * 5 + r'[0-9a-f]{2})(\s|$)', re.IGNORECASE)
             for line in os.popen('ipconfig /all'):
                 m = c.search(line)
                 if m:
@@ -665,7 +665,7 @@ def decrypt_book(book, lib):
     print("Converting {0}".format(book.title))
     zin = zipfile.ZipFile(book.filename, "r")
     # make filename out of Unicode alphanumeric and whitespace equivalents from title
-    outname = "{0}.epub".format(re.sub('[^\s\w]', '_', book.title, 0, re.UNICODE))
+    outname = "{0}.epub".format(re.sub(r'[^\s\w]', '_', book.title, 0, re.UNICODE))
     if (book.type == 'drm-free'):
         print("DRM-free book, conversion is not needed")
         shutil.copyfile(book.filename, outname)

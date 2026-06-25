@@ -13,6 +13,7 @@ plugin_prefs = JSONConfig('plugins/obok_dedrm_prefs')
 plugin_prefs.defaults['finding_homes_for_formats'] = 'Ask'
 plugin_prefs.defaults['kobo_serials'] = []
 plugin_prefs.defaults['kobo_directory'] = u''
+plugin_prefs.defaults['hidden_books'] = []
 
 from calibre_plugins.obok_dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 from calibre_plugins.obok_dedrm.utilities import (debug_print)

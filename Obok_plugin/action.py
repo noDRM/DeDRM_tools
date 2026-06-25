@@ -34,6 +34,7 @@ from calibre_plugins.obok_dedrm.utilities import (
 
 from calibre_plugins.obok_dedrm.obok.obok import KoboLibrary
 from calibre_plugins.obok_dedrm.obok.legacy_obok import legacy_obok
+from calibre_plugins.obok_dedrm.title_match import LibraryMatcher
 
 PLUGIN_ICONS = ['images/obok.png']
 
@@ -131,8 +132,32 @@ class InterfacePluginAction(InterfaceAction):
             showErrorDlg(msg, None)
             return
 
+        # Build a matcher over the titles already in the calibre library so the
+        # dialog can flag (and filter) Kobo books that are already imported.
+        # Kobo and calibre store titles independently, so LibraryMatcher
+        # normalizes both sides and falls back to a bounded fuzzy match.
+        try:
+            book_ids = self.db.all_book_ids()
+            entries = []
+            for book_id in book_ids:
+                title = self.db.field_for('title', book_id)
+                authors = self.db.field_for('authors', book_id)
+                if isinstance(authors, (tuple, list)):
+                    author = ' & '.join(a for a in authors if a)
+                else:
+                    author = authors or ''
+                entries.append((title, author))
+            matcher = LibraryMatcher(entries)
+            debug_print("OBOK DIAG: built library matcher from %d calibre books (%d unique normalized titles)"
+                        % (len(book_ids), len(matcher)))
+        except Exception:
+            debug_print("OBOK DIAG: FAILED to read calibre library titles -- traceback follows")
+            traceback.print_exc()
+            matcher = LibraryMatcher([])
+
         # Launch the Dialog so the user can select titles.
-        dlg = SelectionDialog(self.gui, self, books)
+        from calibre_plugins.obok_dedrm.config import plugin_prefs
+        dlg = SelectionDialog(self.gui, self, books, plugin_prefs, matcher)
         if dlg.exec_():
             books_to_import = dlg.getBooks()
             self.count = len(books_to_import)

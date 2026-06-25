@@ -7,3 +7,6 @@
 # Cache
 /DeDRM_plugin/__pycache__
 /DeDRM_plugin/standalone/__pycache__
+__pycache__/
+*.pyc
+.pytest_cache/
