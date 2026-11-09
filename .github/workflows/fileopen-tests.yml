@@ -1,0 +1,27 @@
+name: FileOpen protocol tests
+
+on:
+  pull_request:
+    paths:
+      - "Other_Tools/Tetrachroma_FileOpen_ineptpdf/**"
+      - ".github/workflows/fileopen-tests.yml"
+  push:
+    branches: [master]
+    paths:
+      - "Other_Tools/Tetrachroma_FileOpen_ineptpdf/**"
+      - ".github/workflows/fileopen-tests.yml"
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python3 -m pip install pycryptodomex requests
+      - run: python3 -m py_compile Other_Tools/Tetrachroma_FileOpen_ineptpdf/ineptpdf_fileopen.pyw
+      - run: >-
+          python3 -m unittest discover
+          -s Other_Tools/Tetrachroma_FileOpen_ineptpdf/tests
+          -p "test_*.py"
