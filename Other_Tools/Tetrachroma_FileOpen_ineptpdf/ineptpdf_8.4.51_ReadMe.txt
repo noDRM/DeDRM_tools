@@ -1,8 +1,26 @@
-ineptpdf 8.4.51
----------------
+FileOpen ineptpdf 10.3.0
+-----------------------
 
-This is a version of the ineptpdf script produced by TetraChroma that can remove, on Windows, "FileOpen" DRM.
+This Windows-only standalone tool handles Adobe ADEPT and FileOpen-protected
+PDF files. It requires Python 3, requests, pycryptodomex, and pywin32.
+
+The historical FileOpen request remains the default:
+
+    py -3 ineptpdf_fileopen.pyw - protected.pdf plain.pdf
+
+Current FileOpen permission servers can use a newer client identity and NAS
+request envelope. Settings and DocPerm envelopes are independently selectable:
+
+    py -3 ineptpdf_fileopen.pyw \
+        --fileopen-profile modern \
+        --fileopen-settings-envelope plain \
+        --fileopen-docperm-envelope nas1 \
+        --trace-dir trace \
+        - protected.pdf plain.pdf
+
+Use --fileopen-build, --acrobat-version, and --os-build to reproduce a known
+installed client tuple. Debug traces can contain document, machine, user, and
+session identifiers; keep the raw trace private. When --trace-dir is supplied,
+the tool also writes redacted JSON summaries suitable for bug reports.
 
 No support for this script is offered at Apprentice Alf's blog.
-
-Trtrachroma's blog is http://tetrachroma.wordpress.com/
