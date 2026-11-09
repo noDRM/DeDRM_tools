@@ -68,6 +68,7 @@ import hashlib
 import json
 import sys
 import os
+import ntpath
 import random
 import re
 import string
@@ -138,6 +139,30 @@ FILEOPEN_DOCPERM_ENVELOPE = 'plain'
 FILEOPEN_OVERRIDES = {}
 TRACE_DIR = None
 
+FILEOPEN_MODERN_SETTING_FIELDS = (
+    'Stamp', 'Mode', 'USR', 'ServiceID', 'DocumentID', 'Ident3ID', 'Ident4ID',
+    'DocStrFmt', 'PageCount', 'AdobePermanentId', 'AdobeInstanceId', 'OSType',
+    'Language', 'LngLCID', 'LngRFC1766', 'LngISO4Char', 'HostAppClass',
+    'HostAppFeatures', 'Build', 'ProdVer', 'EncrVer', 'Machine', 'Disk', 'Uuid',
+    'FormHFT', 'SelServer', 'AcroProduct', 'AcroVersion', 'AcroReader',
+    'AcroCanEdit', 'AcroPrefIDib', 'InBrowser', 'IEProtectedMode', 'DocIsLocal',
+    'DocPathUrl', 'VolName', 'VolType', 'VolSN', 'FSName', 'FowpKbd',
+    'ScreenHook', 'Broker', 'RejectedDlls', 'OSName', 'OSBuild', 'RequestSchema',
+)
+
+FILEOPEN_MODERN_DOCPERM_FIELDS = (
+    'Stamp', 'Mode', 'USR', 'ServiceID', 'DocumentID', 'Ident3ID', 'Ident4ID',
+    'DocStrFmt', 'PageCount', 'AdobePermanentId', 'AdobeInstanceId', 'OSType',
+    'Language', 'LngLCID', 'LngRFC1766', 'LngISO4Char', 'HostAppClass',
+    'HostAppFeatures', 'Build', 'ProdVer', 'EncrVer', 'Machine', 'Disk', 'Uuid',
+    'User', 'SaUser', 'SaSID', 'HostIsDomain', 'PhysHostname', 'LogiHostname',
+    'SaRefDomain', 'FormHFT', 'SelServer', 'AcroProduct', 'AcroVersion',
+    'AcroReader', 'AcroCanEdit', 'AcroPrefIDib', 'InBrowser', 'IEProtectedMode',
+    'DocIsLocal', 'DocPathUrl', 'VolName', 'VolType', 'VolSN', 'FSName',
+    'FowpKbd', 'ScreenHook', 'Broker', 'RejectedDlls', 'OSName', 'OSBuild',
+    'ServerSessionData', 'DocumentSessionData', 'RequestSchema',
+)
+
 FILEOPEN_HASH_LOOKUP_TABLE = bytes([
     0xD2, 0x8A, 0x81, 0x66, 0x90, 0xDE, 0x49, 0x98, 0x90, 0xDE, 0x49, 0x98, 0x94, 0xB1, 0x06, 0x0B,
     0xA8, 0xF5, 0xED, 0xAF, 0x3E, 0xC9, 0x8A, 0xB4, 0x1C, 0x90, 0x23, 0x2B, 0x48, 0x73, 0x2D, 0x5B,
@@ -169,10 +194,13 @@ FILEOPEN_ALIASES = {
 }
 
 FILEOPEN_REDACT_FIELDS = {
-    'Code', 'Disk', 'DocumentID', 'DocumentSessionData', 'DUID', 'Ident3ID',
-    'Ident4ID', 'Machine', 'PrevDisk', 'PrevMach', 'SaSID', 'ServerSessionData',
-    'Session', 'USR', 'User', 'UserName', 'UserPass', 'Uuid',
+    'AdobeInstanceId', 'AdobePermanentId', 'Code', 'Disk', 'DocumentID',
+    'DocumentSessionData', 'DocPathUrl', 'DocuId', 'DUID', 'Ident3ID', 'Ident4ID',
+    'LogiHostname', 'Machine', 'markstamp', 'PhysHostname', 'PrevDisk',
+    'PrevMach', 'SaRefDomain', 'SaSID', 'SaUser', 'ServerSessionData', 'Session',
+    'USR', 'User', 'UserName', 'UserPass', 'Uuid',
 }
+FILEOPEN_REDACT_FIELDS_LOWER = {field.lower() for field in FILEOPEN_REDACT_FIELDS}
 
 
 def _fileopen_text(value):
@@ -280,7 +308,7 @@ def decode_fileopen_document_key(code, expected_length):
 def redact_fileopen_fields(fields):
     result = {}
     for key, value in fields.items():
-        if key in FILEOPEN_REDACT_FIELDS:
+        if key.lower() in FILEOPEN_REDACT_FIELDS_LOWER:
             digest = hashlib.sha256(_fileopen_text(value).encode('utf-8')).hexdigest()[:12]
             result[key] = '<redacted:{}>'.format(digest)
         else:
@@ -294,6 +322,26 @@ def build_fileopen_query(request_name, field_names, fields):
         if key in fields:
             pairs.append((key, _fileopen_text(fields[key])))
     return '&'.join('{}={}'.format(key, value) for key, value in pairs)
+
+
+def fileopen_document_url(path):
+    """Return the encoded local-document URL emitted by current Windows clients."""
+    normalized = str(path).replace('\\', '/')
+    drive, tail = ntpath.splitdrive(normalized)
+    if drive.endswith(':'):
+        normalized = drive[:-1] + '|' + tail
+    return urllib.parse.quote('file:///' + normalized.lstrip('/'), safe='')
+
+
+def next_fileopen_stamp(previous=None):
+    """Return a fresh integer FileOpen timestamp, even within the same second."""
+    current = int(time.time())
+    if previous is not None:
+        try:
+            current = max(current, int(float(previous)) + 1)
+        except (TypeError, ValueError):
+            pass
+    return str(current)
 
 
 def fileopen_debug_path():
@@ -2127,16 +2175,20 @@ class PDFDocument(object):
         # debug customization
         #self.fileopen['Machine'] = ''
         #self.fileopen['Disk'] = ''
-        surl = ( 'Stamp', 'Mode', 'USR', 'ServiceID', 'DocumentID',\
-                 'Ident3ID', 'Ident4ID','DocStrFmt', 'OSType', 'OSName', 'OSData', 'Language',\
-                 'LngLCID', 'LngRFC1766', 'LngISO4Char', 'Build', 'ProdVer', 'EncrVer',\
-                 'Machine', 'Disk', 'Uuid', 'PrevMach', 'PrevDisk',\
-                 'FormHFT',\
-                 'SelServer', 'AcroVersion', 'AcroProduct', 'AcroReader',\
-                 'AcroCanEdit', 'AcroPrefIDib', 'InBrowser', 'CliAppName',\
-                 'DocIsLocal', 'DocPathUrl', 'VolName', 'VolType', 'VolSN',\
-                 'FSName',  'FowpKbd', 'OSBuild',\
-                  'RequestSchema')
+        if FILEOPEN_PROFILE == 'modern':
+            surl = FILEOPEN_MODERN_SETTING_FIELDS
+            self.fileopen['Stamp'] = next_fileopen_stamp(self.fileopen.get('Stamp'))
+        else:
+            surl = ( 'Stamp', 'Mode', 'USR', 'ServiceID', 'DocumentID',\
+                     'Ident3ID', 'Ident4ID','DocStrFmt', 'OSType', 'OSName', 'OSData', 'Language',\
+                     'LngLCID', 'LngRFC1766', 'LngISO4Char', 'Build', 'ProdVer', 'EncrVer',\
+                     'Machine', 'Disk', 'Uuid', 'PrevMach', 'PrevDisk',\
+                     'FormHFT',\
+                     'SelServer', 'AcroVersion', 'AcroProduct', 'AcroReader',\
+                     'AcroCanEdit', 'AcroPrefIDib', 'InBrowser', 'CliAppName',\
+                     'DocIsLocal', 'DocPathUrl', 'VolName', 'VolType', 'VolSN',\
+                     'FSName',  'FowpKbd', 'OSBuild',\
+                      'RequestSchema')
 
         #settings request and special modes
         if 'EVER' in self.fileopen and float(self.fileopen['EVER']) < 3.8:
@@ -2295,18 +2347,22 @@ class PDFDocument(object):
 
         # original request
         # drive through tupple for building the permission url
-        burl = ( 'Stamp', 'Mode', 'USR', 'ServiceID', 'DocumentID',\
-                 'Ident3ID', 'Ident4ID','DocStrFmt', 'OSType', 'Language',\
-                 'LngLCID', 'LngRFC1766', 'LngISO4Char', 'Build', 'ProdVer', 'EncrVer',\
-                 'Machine', 'Disk', 'Uuid', 'PrevMach', 'PrevDisk', 'User', 'SaUser', 'SaSID',\
-                 # special security measures
-                 'HostIsDomain', 'PhysHostname', 'LogiHostname', 'SaRefDomain',\
-                 'FormHFT', 'UserName', 'UserPass', 'Session', \
-                 'SelServer', 'AcroVersion', 'AcroProduct', 'AcroReader',\
-                 'AcroCanEdit', 'AcroPrefIDib', 'InBrowser', 'CliAppName',\
-                 'DocIsLocal', 'DocPathUrl', 'VolName', 'VolType', 'VolSN',\
-                 'FSName', 'ServerSessionData', 'FowpKbd', 'OSBuild', \
-                 'DocumentSessionData', 'RequestSchema')
+        if FILEOPEN_PROFILE == 'modern':
+            burl = FILEOPEN_MODERN_DOCPERM_FIELDS
+            self.fileopen['Stamp'] = next_fileopen_stamp(self.fileopen.get('Stamp'))
+        else:
+            burl = ( 'Stamp', 'Mode', 'USR', 'ServiceID', 'DocumentID',\
+                     'Ident3ID', 'Ident4ID','DocStrFmt', 'OSType', 'Language',\
+                     'LngLCID', 'LngRFC1766', 'LngISO4Char', 'Build', 'ProdVer', 'EncrVer',\
+                     'Machine', 'Disk', 'Uuid', 'PrevMach', 'PrevDisk', 'User', 'SaUser', 'SaSID',\
+                     # special security measures
+                     'HostIsDomain', 'PhysHostname', 'LogiHostname', 'SaRefDomain',\
+                     'FormHFT', 'UserName', 'UserPass', 'Session', \
+                     'SelServer', 'AcroVersion', 'AcroProduct', 'AcroReader',\
+                     'AcroCanEdit', 'AcroPrefIDib', 'InBrowser', 'CliAppName',\
+                     'DocIsLocal', 'DocPathUrl', 'VolName', 'VolType', 'VolSN',\
+                     'FSName', 'ServerSessionData', 'FowpKbd', 'OSBuild', \
+                     'DocumentSessionData', 'RequestSchema')
 
         docperm_query = build_fileopen_query('DocPerm', burl, self.fileopen)
         docperm_payload = docperm_query
@@ -2355,6 +2411,8 @@ class PDFDocument(object):
                     self.fileopen['DocumentSessionData'] = self.urlresult['DocumentSessionData']
                 self.gen_pw_dialog()
                 # password not found - fallback
+                if FILEOPEN_PROFILE == 'modern':
+                    self.fileopen['Stamp'] = next_fileopen_stamp(self.fileopen.get('Stamp'))
                 docperm_query = build_fileopen_query('DocPerm', burl, self.fileopen)
                 docperm_payload = docperm_query
                 if FILEOPEN_DOCPERM_ENVELOPE == 'nas1':
@@ -2537,6 +2595,16 @@ class PDFDocument(object):
         self.fileopen['DocIsLocal']='Yes'
         self.fileopen['FowpKbd']='Yes'
         self.fileopen['RequestSchema']='Default'
+        if FILEOPEN_PROFILE == 'modern':
+            self.fileopen['PageCount'] = '0'
+            self.fileopen['HostAppClass'] = 'FileOpen%20Plug-in'
+            self.fileopen['HostAppFeatures'] = '001fff7f337ff3ff'
+            self.fileopen['ProdVer'] = '4.6.7.64'
+            self.fileopen['InBrowser'] = 'No'
+            self.fileopen['IEProtectedMode'] = 'Unknown'
+            self.fileopen['ScreenHook'] = 'Yes'
+            self.fileopen['Broker'] = 'No'
+            self.fileopen['RejectedDlls'] = ''
 
     # get nic mac address
     def get_linux_macaddress(self):
@@ -2643,7 +2711,7 @@ class PDFDocument(object):
     # Windows processing
     def fo_win_sethwids(self):
         # Keep the historical tuple as the default. The modern profile is a
-        # coherent Windows 10 / Reader 25 / FileOpen 1016 identity and can be
+        # coherent Windows 10 / current Reader / FileOpen 1016 identity and can be
         # overridden from the CLI when a newer installed client is observed.
         self.fileopen['OSType'] = 'Windows'
         self.fileopen['AcroProduct'] = 'Reader'
@@ -2652,7 +2720,7 @@ class PDFDocument(object):
             self.fileopen['OSName'] = 'Win10%2064bit'
             self.fileopen['OSData'] = ''
             self.fileopen['OSBuild'] = '19045'
-            self.fileopen['AcroVersion'] = '25.256'
+            self.fileopen['AcroVersion'] = '26.512'
             self.fileopen['Build'] = '1016'
             self.osuseragent = 'Acrobat Reader FileOpen WebPublisher Plug-in'
         else:
@@ -2716,22 +2784,31 @@ class PDFDocument(object):
                     self.fileopen['PhysHostname']= hostname
                     self.fileopen['LogiHostname']= hostname
                     self.fileopen['SaRefDomain']= hostname
+        if FILEOPEN_PROFILE == 'modern':
+            hostname = socket.gethostname()
+            self.fileopen['HostIsDomain'] = 'Yes'
+            self.fileopen['PhysHostname'] = hostname
+            self.fileopen['LogiHostname'] = hostname
+            self.fileopen['SaRefDomain'] = hostname
         # default users
         self.user = win32api.GetUserName().lower()
         self.sauser = win32api.GetUserName()
         # get uuid
         # check for reversed offline handler
-        if 'LILA' in self.fileopen and self.fileopen['LILA'] == 'Yes':
+        if (FILEOPEN_PROFILE == 'modern' or
+                ('LILA' in self.fileopen and self.fileopen['LILA'] == 'Yes')):
 ##            self.fileopen['User'] = win32api.GetUserName().lower()
 ##            self.fileopen['SaUser'] = win32api.GetUserName()
 
             # get sid / sasid
+            self.fileopen['User'] = urllib.parse.quote(self.user, safe='')
+            self.fileopen['SaUser'] = urllib.parse.quote(self.sauser, safe='')
             try:
-                psid = win32security.LookupAccountName("",self.sauser)[0]
+                psid, refdomain, _ = win32security.LookupAccountName("", self.sauser)
                 psid = win32security.ConvertSidToStringSid(psid)
                 self.fileopen['SaSID'] = psid
-                self.fileopen['User'] = urllib.parse.quote(self.user)
-                self.fileopen['SaUser'] = urllib.parse.quote(self.sauser)
+                if FILEOPEN_PROFILE == 'modern' and refdomain:
+                    self.fileopen['SaRefDomain'] = urllib.parse.quote(refdomain, safe='')
             # didn't work use a generic one
             except:
                 self.fileopen['SaSID'] = 'S-1-5-21-1380067357-584463869-1343024091-1000'
@@ -2763,12 +2840,23 @@ class PDFDocument(object):
         else:
             self.fileopen['Uuid'] = str(uuid.uuid1())
 
+        if FILEOPEN_PROFILE == 'modern':
+            adobe_seed = '{}:{}'.format(
+                self.fileopen.get('Machine', ''), self.fileopen.get('Disk', ''))
+            self.fileopen['AdobePermanentId'] = hashlib.md5(
+                adobe_seed.encode('utf-8')).hexdigest()
+            self.fileopen['AdobeInstanceId'] = uuid.uuid4().hex
+
         # get time stamp
-        self.fileopen['Stamp'] = str(time.time())[:-3]
+        if FILEOPEN_PROFILE != 'modern':
+            self.fileopen['Stamp'] = str(time.time())[:-3]
         # get fileopen input pdf name + path
         # print INPUTFILEPATH
-        self.fileopen['DocPathUrl'] = 'file%3a%2f%2f%2f'\
-                                      + urllib.parse.quote(INPUTFILEPATH)
+        if FILEOPEN_PROFILE == 'modern':
+            self.fileopen['DocPathUrl'] = fileopen_document_url(INPUTFILEPATH)
+        else:
+            self.fileopen['DocPathUrl'] = 'file%3a%2f%2f%2f'\
+                                          + urllib.parse.quote(INPUTFILEPATH)
         # determine voltype
         voltype = ('Unknown', 'Invalid', 'Removable', 'Fixed', 'Remote', 'CDRom', 'RamDisk')
 

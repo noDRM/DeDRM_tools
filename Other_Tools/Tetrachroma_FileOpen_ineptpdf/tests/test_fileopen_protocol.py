@@ -68,12 +68,48 @@ class FileOpenProtocolTests(unittest.TestCase):
             {'Machine': 'ABC', 'Build': '1016'})
         self.assertEqual('Request=DocPerm&Build=1016&Machine=ABC', query)
 
+    def test_modern_document_url_matches_windows_client(self):
+        encoded = fileopen.fileopen_document_url(
+            r'C:\Users\Happy Hacker\Downloads\protected.pdf')
+        self.assertEqual(
+            'file%3A%2F%2F%2FC%7C%2FUsers%2FHappy%20Hacker%2FDownloads%2Fprotected.pdf',
+            encoded)
+
+    def test_modern_stamps_are_integer_and_increase(self):
+        previous = str(int(fileopen.time.time()) + 1000)
+        first = fileopen.next_fileopen_stamp(previous)
+        second = fileopen.next_fileopen_stamp(first)
+        self.assertEqual(str(int(previous) + 1), first)
+        self.assertEqual(str(int(previous) + 2), second)
+
+    def test_modern_query_order_matches_current_client(self):
+        fields = {key: key for key in fileopen.FILEOPEN_MODERN_SETTING_FIELDS}
+        query = fileopen.build_fileopen_query(
+            'Setting', fileopen.FILEOPEN_MODERN_SETTING_FIELDS, fields)
+        self.assertLess(query.index('&PageCount='), query.index('&AdobePermanentId='))
+        self.assertLess(query.index('&HostAppFeatures='), query.index('&Build='))
+        self.assertLess(query.index('&RejectedDlls='), query.index('&OSName='))
+
     def test_redaction_hashes_sensitive_values(self):
         redacted = fileopen.redact_fileopen_fields(
             {'Build': '1016', 'Machine': 'secret-machine'})
         self.assertEqual('1016', redacted['Build'])
         self.assertRegex(redacted['Machine'], r'^<redacted:[0-9a-f]{12}>$')
         self.assertNotIn('secret-machine', redacted['Machine'])
+
+    def test_redaction_covers_modern_client_identifiers(self):
+        redacted = fileopen.redact_fileopen_fields({
+            'AdobePermanentId': 'permanent',
+            'AdobeInstanceId': 'instance',
+            'DocPathUrl': 'file:///C:/Users/person/document.pdf',
+            'DocuId': 'document',
+            'Ident3Id': 'identity',
+            'markstamp': 'machine / public-ip / timestamp',
+            'PhysHostname': 'workstation',
+            'SaUser': 'person',
+        })
+        for value in redacted.values():
+            self.assertRegex(value, r'^<redacted:[0-9a-f]{12}>$')
 
 
 if __name__ == '__main__':
