@@ -52,6 +52,16 @@ class FileOpenProtocolTests(unittest.TestCase):
         with self.assertRaises(fileopen.ADEPTError):
             fileopen.decode_fileopen_document_key('0011', 16)
 
+    def test_genkey_v2_accepts_binary_document_keys(self):
+        document = fileopen.PDFDocument.__new__(fileopen.PDFDocument)
+        document.decrypt_key = b'ABCDE'
+        binary_result = document.genkey_v2(12, 0)
+        document.decrypt_key = 'ABCDE'
+        text_result = document.genkey_v2(12, 0)
+
+        self.assertEqual(binary_result, text_result)
+        self.assertEqual(10, len(binary_result))
+
     def test_query_order_is_stable(self):
         query = fileopen.build_fileopen_query(
             'DocPerm', ('Build', 'Machine', 'Missing'),

@@ -2439,9 +2439,12 @@ class PDFDocument(object):
     def genkey_v2(self, objid, genno):
         objid = struct.pack('<L', objid)[:3]
         genno = struct.pack('<L', genno)[:2]
-        key = self.decrypt_key.encode('utf-8') + objid + genno
+        decrypt_key = self.decrypt_key
+        if isinstance(decrypt_key, str):
+            decrypt_key = decrypt_key.encode('utf-8')
+        key = decrypt_key + objid + genno
         hash = hashlib.md5(key)
-        key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
+        key = hash.digest()[:min(len(decrypt_key) + 5, 16)]
         return key
 
     def genkey_v3(self, objid, genno):
